@@ -18,8 +18,8 @@ import { matchesFolder } from './folders';
 export class TasksSource implements EventSource {
 	readonly id = 'tasks';
 
-	/** path → parsed events, valid until the file's mtime changes. */
-	private cache = new Map<string, { mtime: number; events: CalendarEvent[] }>();
+	/** path → parsed events, valid until the file's mtime or globalFilter changes. */
+	private cache = new Map<string, { mtime: number; filter: string; events: CalendarEvent[] }>();
 
 	constructor(
 		private readonly app: App,
@@ -62,8 +62,11 @@ export class TasksSource implements EventSource {
 	}
 
 	private async eventsFor(file: TFile): Promise<CalendarEvent[]> {
+		const filter = this.getSettings().globalFilter.trim();
 		const cached = this.cache.get(file.path);
-		if (cached && cached.mtime === file.stat.mtime) return cached.events;
+		if (cached && cached.mtime === file.stat.mtime && cached.filter === filter) {
+			return cached.events;
+		}
 
 		let content: string;
 		try {
@@ -74,7 +77,7 @@ export class TasksSource implements EventSource {
 		}
 
 		const events = this.parse(file, content);
-		this.cache.set(file.path, { mtime: file.stat.mtime, events });
+		this.cache.set(file.path, { mtime: file.stat.mtime, filter, events });
 		return events;
 	}
 
@@ -84,8 +87,18 @@ export class TasksSource implements EventSource {
 		const events: CalendarEvent[] = [];
 
 		const lines = content.split(/\r?\n/);
+		let inManagedBlock = false;
 		for (let number = 0; number < lines.length; number += 1) {
 			const line = lines[number];
+			if (line.includes('<!-- calendar-studio:tasks:start -->')) {
+				inManagedBlock = true;
+				continue;
+			}
+			if (line.includes('<!-- calendar-studio:tasks:end -->')) {
+				inManagedBlock = false;
+				continue;
+			}
+			if (inManagedBlock) continue;
 			// The global filter decides which lines count as tasks.
 			if (filter && !line.includes(filter)) continue;
 

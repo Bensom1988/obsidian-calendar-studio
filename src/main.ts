@@ -82,6 +82,12 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	/** The code blocks inside notes that show the calendar. */
 	private embedBlocks: CalendarStudioBlock[] = [];
 
+	/** Persistent source instances so per-file caches survive settings saves. */
+	private frontmatterSource!: FrontmatterSource;
+	private filenameSource!: FilenameSource;
+	private tasksSource!: TasksSource;
+	private caldavSource!: CalDavSource;
+
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		// The CalDAV client talks to the server through Obsidian's own
@@ -89,6 +95,10 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 		this.caldav = new CalDavService(this, (account) =>
 			createCalDavClient(account, createObsidianFetch()),
 		);
+		this.frontmatterSource = new FrontmatterSource(this.app, () => this.settings.frontmatter);
+		this.filenameSource = new FilenameSource(this.app, () => this.settings.filenames);
+		this.tasksSource = new TasksSource(this.app, () => this.settings.tasks);
+		this.caldavSource = new CalDavSource(this.caldav);
 
 		this.registerView(MONTH_VIEW_TYPE, (leaf: WorkspaceLeaf) => new MonthView(leaf, this));
 		this.registerView(MINI_VIEW_TYPE, (leaf: WorkspaceLeaf) => new MiniCalendarView(leaf, this));
@@ -185,30 +195,27 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 			},
 		});
 
-		this.buildSources();
+		this.buildSources(false);
 		this.startAutoSync();
 		// A note with a calendar block follows the index.
 		this.index.onChange(() => this.refreshEmbedBlocks());
 
-		// Frontmatter changes surface through the metadata cache, file edits
-		// through the vault. Both only schedule a rebuild — the index itself
-		// coalesces them.
 		this.registerEvent(
 			this.app.metadataCache.on('changed', () => this.index.scheduleRebuild()),
 		);
-		this.registerEvent(this.app.vault.on('create', () => this.index.scheduleRebuild()));
 		this.registerEvent(this.app.vault.on('delete', () => this.index.scheduleRebuild()));
 		this.registerEvent(this.app.vault.on('rename', () => this.index.scheduleRebuild()));
 
+		// Wait for layout ready before scanning the vault or listening to
+		// `create` — Obsidian fires `create` for every existing file during boot.
 		this.app.workspace.onLayoutReady(() => {
+			this.registerEvent(this.app.vault.on('create', () => this.index.scheduleRebuild()));
+			void this.index.rebuild();
 			void this.openMiniCalendar();
+			if (this.settings.caldav.enabled) {
+				void this.caldav.restoreFromCache().then(() => this.syncCalDav(true));
+			}
 		});
-
-		// Show the last known schedule right away, then refresh it in the
-		// background — the calendar must never wait for the network.
-		if (this.settings.caldav.enabled) {
-			void this.caldav.restoreFromCache().then(() => this.syncCalDav(true));
-		}
 	}
 
 	onunload(): void {
@@ -216,7 +223,7 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 			window.clearInterval(this.autoSyncTimer);
 			this.autoSyncTimer = null;
 		}
-		this.index.scheduleRebuild(0);
+		this.index.clear();
 	}
 
 	async loadSettings(): Promise<void> {
@@ -272,8 +279,8 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 			await this.saveData(this.settings);
 		});
 		await this.saveQueue;
-		// Recreating the sources already triggers a fresh index.
-		this.buildSources();
+		this.buildSources(false);
+		this.index.scheduleRebuild(250);
 		this.startAutoSync();
 		this.refreshEmbedBlocks();
 		if (this.ribbonIcon) {
@@ -284,17 +291,17 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 		}
 	}
 
-	/** Recreate the sources from the current settings and refresh the index. */
-	private buildSources(): void {
+	/** Update the active source list while preserving source caches. */
+	private buildSources(immediate = true): void {
 		const sources: EventSource[] = [
-			new FrontmatterSource(this.app, () => this.settings.frontmatter),
-			new FilenameSource(this.app, () => this.settings.filenames),
-			new TasksSource(this.app, () => this.settings.tasks),
+			this.frontmatterSource,
+			this.filenameSource,
+			this.tasksSource,
 		];
 		if (this.settings.caldav.enabled) {
-			sources.push(new CalDavSource(this.caldav));
+			sources.push(this.caldavSource);
 		}
-		this.index.setSources(sources);
+		this.index.setSources(sources, immediate);
 	}
 
 	/** The CalDAV settings, as the sync service sees them. */
@@ -533,10 +540,13 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	async createDailyNote(date: Date): Promise<void> {
 		const language = this.settings.language;
 		try {
+			const events = this.index
+				.getEventsOnDate(date)
+				.filter((event) => event.source !== 'filename');
 			const outcome = await createOrUpdateDailyNote(
 				this.app,
 				date,
-				this.index.getEventsOnDate(date),
+				events,
 				this.settings.workflow,
 				this.settings.locale,
 			);
@@ -555,10 +565,13 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	async generateTasks(date: Date): Promise<void> {
 		const language = this.settings.language;
 		try {
+			const events = this.index
+				.getEventsOnDate(date)
+				.filter((event) => event.source !== 'filename');
 			const outcome = await generateTasksForDay(
 				this.app,
 				date,
-				this.index.getEventsOnDate(date),
+				events,
 				this.settings.workflow,
 				this.settings.locale,
 			);

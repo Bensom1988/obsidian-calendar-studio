@@ -28,6 +28,9 @@ type ViewMode = 'month' | 'agenda';
  */
 export class MonthView extends ItemView {
 	private mode: ViewMode = 'month';
+	private unsubState: (() => void) | null = null;
+	private unsubIndex: (() => void) | null = null;
+	private rafId: number | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -49,13 +52,29 @@ export class MonthView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
-		this.plugin.state.onChange(() => this.render());
-		this.plugin.index.onChange(() => this.render());
+		this.unsubState = this.plugin.state.onChange(() => this.scheduleRender());
+		this.unsubIndex = this.plugin.index.onChange(() => this.scheduleRender());
 		this.render();
 	}
 
 	async onClose(): Promise<void> {
+		this.unsubState?.();
+		this.unsubIndex?.();
+		this.unsubState = null;
+		this.unsubIndex = null;
+		if (this.rafId !== null) {
+			window.cancelAnimationFrame(this.rafId);
+			this.rafId = null;
+		}
 		this.contentEl.empty();
+	}
+
+	private scheduleRender(): void {
+		if (this.rafId !== null) return;
+		this.rafId = window.requestAnimationFrame(() => {
+			this.rafId = null;
+			this.render();
+		});
 	}
 
 	private t(key: string, vars?: Record<string, string | number>): string {

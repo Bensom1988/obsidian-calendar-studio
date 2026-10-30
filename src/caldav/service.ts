@@ -134,6 +134,11 @@ export class CalDavService {
 			} catch (error) {
 				const message = describeError(error);
 				account.lastError = message;
+				// Preserve previously cached events of this account when a sync fails.
+				const prefix = `caldav:${account.id}:`;
+				for (const cached of this.events) {
+					if (cached.id.startsWith(prefix)) collected.push(cached);
+				}
 				reports.push({
 					id: account.id,
 					name: account.name || account.url,

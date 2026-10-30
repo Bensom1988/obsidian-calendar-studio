@@ -135,15 +135,31 @@ export function parseDateValue(value: unknown): ParsedDate | null {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Formatting                                                                 */
+/* Formatting (with cached Intl.DateTimeFormat instances)                     */
 /* -------------------------------------------------------------------------- */
 
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+	const key = `${locale}:${JSON.stringify(options)}`;
+	let fmt = formatters.get(key);
+	if (!fmt) {
+		try {
+			fmt = new Intl.DateTimeFormat(locale, options);
+		} catch {
+			fmt = new Intl.DateTimeFormat('en-US', options);
+		}
+		formatters.set(key, fmt);
+	}
+	return fmt;
+}
+
 export function formatMonthTitle(date: Date, locale: string): string {
-	return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long' }).format(date);
+	return getFormatter(locale, { year: 'numeric', month: 'long' }).format(date);
 }
 
 export function formatFullDate(date: Date, locale: string): string {
-	return new Intl.DateTimeFormat(locale, {
+	return getFormatter(locale, {
 		year: 'numeric',
 		month: 'long',
 		day: 'numeric',
@@ -152,7 +168,7 @@ export function formatFullDate(date: Date, locale: string): string {
 }
 
 export function formatTime(date: Date, locale: string): string {
-	return new Intl.DateTimeFormat(locale, {
+	return getFormatter(locale, {
 		hour: '2-digit',
 		minute: '2-digit',
 		hour12: false,
@@ -163,10 +179,11 @@ export function formatTime(date: Date, locale: string): string {
 export function weekdayLabels(locale: string, weekStart: number): string[] {
 	// 2023-01-01 was a Sunday — a stable anchor for weekday names.
 	const sunday = new Date(2023, 0, 1);
+	const fmt = getFormatter(locale, { weekday: 'short' });
 	return Array.from({ length: 7 }, (_, index) => {
 		const date = new Date(sunday.getTime());
 		date.setDate(sunday.getDate() + ((weekStart + index) % 7));
-		return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(date);
+		return fmt.format(date);
 	});
 }
 
@@ -200,8 +217,12 @@ export function formatDatePattern(
 	locale = 'en-US',
 ): string {
 	const pad = (value: number, size = 2) => String(value).padStart(size, '0');
-	const weekdayLong = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date);
-	const weekdayShort = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(date);
+	const weekdayLong = pattern.includes('dddd')
+		? getFormatter(locale, { weekday: 'long' }).format(date)
+		: '';
+	const weekdayShort = pattern.includes('ddd')
+		? getFormatter(locale, { weekday: 'short' }).format(date)
+		: '';
 
 	const tokens: [string, string][] = [
 		['YYYY', String(date.getFullYear())],

@@ -4,9 +4,8 @@ import { addDays, startOfDay, toDateKey } from './dateUtils';
 /**
  * In-memory index of every known event, grouped by local date key.
  *
- * The vault can hold tens of thousands of notes, so the index is rebuilt
- * lazily and coalesced: sources are re-collected on a debounce whenever the
- * vault changes, never synchronously per keystroke.
+ * Rebuilt lazily on a debounce whenever the vault changes, never synchronously
+ * per keystroke.
  */
 export class EventIndex {
 	private byDay = new Map<string, CalendarEvent[]>();
@@ -17,18 +16,11 @@ export class EventIndex {
 	/** Bumped on every rebuild; stale results are dropped. */
 	private generation = 0;
 
-	setSources(sources: EventSource[]): void {
+	setSources(sources: EventSource[], immediate = true): void {
 		this.sources = sources;
-		void this.rebuild();
+		if (immediate) void this.rebuild();
 	}
 
-	/**
-	 * Collect every source and swap the index in one go.
-	 *
-	 * Sources may be asynchronous (reading files, fetching CalDAV). Only the
-	 * newest run is allowed to publish its result, so a slow source cannot
-	 * overwrite fresher data.
-	 */
 	async rebuild(): Promise<void> {
 		const generation = ++this.generation;
 		const collected: CalendarEvent[] = [];
@@ -37,7 +29,7 @@ export class EventIndex {
 			try {
 				const events = await source.collect();
 				if (generation !== this.generation) return;
-				collected.push(...events);
+				for (const event of events) collected.push(event);
 			} catch (error) {
 				console.error(`[calendar-studio] source "${source.id}" failed:`, error);
 			}
@@ -47,20 +39,16 @@ export class EventIndex {
 		this.all = collected;
 		this.byDay.clear();
 		for (const event of collected) {
-			this.add(event);
+			this.indexByDay(event);
 		}
 
 		this.notify();
 	}
 
-	private add(event: CalendarEvent): void {
-		this.all.push(event);
-
+	private indexByDay(event: CalendarEvent): void {
 		const start = startOfDay(event.start);
 		const end = event.end ? startOfDay(event.end) : start;
 		let cursor = start;
-		// Guard against pathological ranges (a typo in a date field must not
-		// freeze the UI).
 		let guard = 0;
 		while (cursor <= end && guard < 3660) {
 			const key = toDateKey(cursor);
@@ -79,6 +67,17 @@ export class EventIndex {
 			this.timer = null;
 			void this.rebuild();
 		}, delayMs);
+	}
+
+	/** Cancel any pending rebuild timer on plugin unload. */
+	clear(): void {
+		if (this.timer !== null) {
+			window.clearTimeout(this.timer);
+			this.timer = null;
+		}
+		this.generation += 1;
+		this.byDay.clear();
+		this.all = [];
 	}
 
 	onChange(listener: () => void): () => void {

@@ -45,7 +45,7 @@ function eventLines(event: CalendarEvent): string[] {
 	lines.push(`DTSTAMP:${formatUtc(new Date())}`);
 	if (event.allDay) {
 		lines.push(`DTSTART;VALUE=DATE:${formatDate(event.start)}`);
-		const end = event.end ?? addOneDay(event.start);
+		const end = addOneDay(event.end ?? event.start);
 		lines.push(`DTEND;VALUE=DATE:${formatDate(end)}`);
 	} else {
 		lines.push(`DTSTART:${formatUtc(event.start)}`);
@@ -68,16 +68,28 @@ export function escapeText(value: string): string {
 		.replace(/\r?\n/g, '\\n');
 }
 
-/** Fold a long line: 75 octets per line, the rest continues with a space. */
+const utf8Encoder = new TextEncoder();
+
+/** Fold a long line: at most 73 UTF-8 bytes per segment, continuing with a space. */
 export function foldLine(line: string): string {
-	if (line.length <= 73) return line;
+	if (utf8Encoder.encode(line).byteLength <= 73) return line;
 	const parts: string[] = [];
-	let rest = line;
-	while (rest.length > 73) {
-		parts.push(rest.slice(0, 73));
-		rest = ` ${rest.slice(73)}`;
+	let current = '';
+	let currentBytes = 0;
+	for (const ch of line) {
+		const chBytes = utf8Encoder.encode(ch).byteLength;
+		if (currentBytes + chBytes > 73 && current.length > 0) {
+			parts.push(parts.length === 0 ? current : ` ${current}`);
+			current = ch;
+			currentBytes = chBytes;
+		} else {
+			current += ch;
+			currentBytes += chBytes;
+		}
 	}
-	parts.push(rest);
+	if (current.length > 0) {
+		parts.push(parts.length === 0 ? current : ` ${current}`);
+	}
 	return parts.join('\r\n');
 }
 

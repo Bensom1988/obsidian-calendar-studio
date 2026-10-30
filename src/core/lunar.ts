@@ -1,11 +1,12 @@
 import { HolidayUtil, Solar } from 'lunar-javascript';
+import { toDateKey } from './dateUtils';
 
 /**
  * Optional Chinese calendar support: lunar date, solar terms, traditional
  * festivals, and statutory holidays / makeup workdays (休 / 班).
  *
- * Wrapped in one module so the rest of the plugin never imports the library
- * directly and so the feature can be switched off entirely from settings.
+ * Results are cached by local `YYYY-MM-DD` date key so rendering 42-cell month
+ * grids never repeats the astronomical calculation for the same day.
  */
 
 export interface LunarInfo {
@@ -42,7 +43,14 @@ const EMPTY: LunarInfo = {
 	holiday: '',
 };
 
+const cache = new Map<string, LunarInfo>();
+const MAX_CACHE_SIZE = 1024;
+
 export function getLunarInfo(date: Date): LunarInfo {
+	const key = toDateKey(date);
+	const hit = cache.get(key);
+	if (hit) return hit;
+
 	try {
 		const solar = Solar.fromDate(date);
 		const lunar = solar.getLunar();
@@ -62,7 +70,7 @@ export function getLunarInfo(date: Date): LunarInfo {
 		const dayOrMonth = day === '初一' ? `${month}月` : day;
 		const shortLabel = jieQi || festival || (!isWorkday && holiday) || dayOrMonth;
 
-		return {
+		const info: LunarInfo = {
 			month,
 			day,
 			label: `${month}月${day}`,
@@ -72,6 +80,9 @@ export function getLunarInfo(date: Date): LunarInfo {
 			holiday,
 			isWorkday,
 		};
+		if (cache.size >= MAX_CACHE_SIZE) cache.clear();
+		cache.set(key, info);
+		return info;
 	} catch (error) {
 		console.error('[calendar-studio] lunar lookup failed:', error);
 		return EMPTY;

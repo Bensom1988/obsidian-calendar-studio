@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildIcs, escapeText, foldLine, icsFileName } from '../src/export/ics';
+import { EventIndex } from '../src/core/eventIndex';
 import type { CalendarEvent } from '../src/core/types';
 
 function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
@@ -70,6 +71,40 @@ describe('foldLine', () => {
 		for (const line of folded.split('\r\n')) {
 			expect(line.length).toBeLessThanOrEqual(74);
 		}
+	});
+
+	it('folds multi-byte Chinese characters within 75 UTF-8 octets per line', () => {
+		const folded = foldLine(`SUMMARY:${'中文日历事件标题测试'.repeat(6)}`);
+		const enc = new TextEncoder();
+		for (const line of folded.split('\r\n')) {
+			expect(enc.encode(line).byteLength).toBeLessThanOrEqual(75);
+		}
+	});
+});
+
+describe('EventIndex.rebuild', () => {
+	it('indexes events without duplicating or infinite-looping', async () => {
+		const index = new EventIndex();
+		index.setSources(
+			[
+				{
+					id: 'frontmatter',
+					collect: () => [
+						event({
+							id: 'fm:1',
+							start: new Date(2026, 9, 30),
+							end: undefined,
+							allDay: true,
+						}),
+					],
+				},
+			],
+			false,
+		);
+		await index.rebuild();
+		expect(index.getAll()).toHaveLength(1);
+		expect(index.getEventsOnDate(new Date(2026, 9, 30))).toHaveLength(1);
+		expect(index.getEventsOnDate(new Date(2026, 9, 31))).toHaveLength(0);
 	});
 });
 

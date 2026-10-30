@@ -127,15 +127,11 @@ function occurrenceOf(event: ICAL.Event, component: ICAL.Component): Occurrence 
 		if (raw) {
 			const candidate = raw.toJSDate();
 			if (!Number.isNaN(candidate.getTime()) && candidate.getTime() > start.getTime()) {
-				end = candidate;
+				end = allDay ? inclusiveAllDayEnd(start, candidate) : candidate;
 			}
 		}
 	} catch {
 		end = undefined;
-	}
-	if (!end && allDay) {
-		// An all-day event without an end covers exactly one day.
-		end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
 	}
 
 	return {
@@ -144,6 +140,21 @@ function occurrenceOf(event: ICAL.Event, component: ICAL.Component): Occurrence 
 		allDay,
 		key: occurrenceKey(event, component),
 	};
+}
+
+/**
+ * RFC 5545 `DTEND;VALUE=DATE` is exclusive (a 1-day event on Oct 30 has
+ * DTEND Oct 31). Convert it to an inclusive end date, or `undefined` when the
+ * event covers a single day.
+ */
+function inclusiveAllDayEnd(start: Date, exclusiveEnd: Date): Date | undefined {
+	const lastDay = new Date(
+		exclusiveEnd.getFullYear(),
+		exclusiveEnd.getMonth(),
+		exclusiveEnd.getDate() - 1,
+	);
+	const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+	return lastDay.getTime() > startDay.getTime() ? lastDay : undefined;
 }
 
 /** Expand a recurring event into the occurrences that fall into the range. */
@@ -178,11 +189,13 @@ function expand(
 		if (range && start.getTime() > range.end.getTime()) break;
 		if (range && start.getTime() < range.start.getTime()) continue;
 
-		const end = new Date(start.getTime() + duration);
+		const rawEnd = new Date(start.getTime() + duration);
+		const allDay = event.startDate.isDate === true;
+		const end = allDay ? inclusiveAllDayEnd(start, rawEnd) : rawEnd;
 		results.push({
 			start,
 			end,
-			allDay: event.startDate.isDate === true,
+			allDay,
 			key: next.toString(),
 		});
 	}

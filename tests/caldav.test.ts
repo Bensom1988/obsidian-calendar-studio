@@ -62,8 +62,8 @@ END:VEVENT`),
 		expect(event.meta?.description).toBe('第一行\n第二行');
 	});
 
-	it('reads an all-day event', () => {
-		const events = parseIcs(
+	it('reads an all-day event with exclusive DTEND converted to inclusive', () => {
+		const singleDay = parseIcs(
 			ics(`BEGIN:VEVENT
 UID:evt-2
 DTSTAMP:20261020T010000Z
@@ -74,11 +74,23 @@ END:VEVENT`),
 			CONTEXT,
 		);
 
-		expect(events).toHaveLength(1);
-		expect(events[0].allDay).toBe(true);
-		expect(events[0].start.getDate()).toBe(31);
-		expect(events[0].start.getHours()).toBe(0);
-		expect(events[0].end!.getDate()).toBe(1);
+		expect(singleDay).toHaveLength(1);
+		expect(singleDay[0].allDay).toBe(true);
+		expect(singleDay[0].start.getDate()).toBe(31);
+		expect(singleDay[0].start.getHours()).toBe(0);
+		expect(singleDay[0].end).toBeUndefined();
+
+		const twoDays = parseIcs(
+			ics(`BEGIN:VEVENT
+UID:evt-2b
+DTSTAMP:20261020T010000Z
+DTSTART;VALUE=DATE:20261031
+DTEND;VALUE=DATE:20261102
+SUMMARY:两天活动
+END:VEVENT`),
+			CONTEXT,
+		);
+		expect(twoDays[0].end?.getDate()).toBe(1);
 	});
 
 	it('expands a recurring event inside the range', () => {
