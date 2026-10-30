@@ -65,20 +65,20 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
 
 1. Install the [BRAT](https://github.com/Tepb0/obsidian-brat) community plugin.
 2. In BRAT's settings choose **Add new plugin** and enter:
-   `https://github.com/bensom/obsidian-calendar-studio`
+   `https://github.com/Bensom1988/obsidian-calendar-studio`
 3. Press **Install** — BRAT downloads the latest release automatically.
 
 **Option B — manual**
 
 Download `main.js`, `manifest.json` and `styles.css` from the
-[latest release](https://github.com/bensom/obsidian-calendar-studio/releases/latest),
+[latest release](https://github.com/Bensom1988/obsidian-calendar-studio/releases/latest),
 copy them into `<your vault>/.obsidian/plugins/calendar-studio/`, then enable
 **Calendar Studio** in *Settings → Community plugins*.
 
 **Option C — build from source**
 
 ```bash
-git clone https://github.com/bensom/obsidian-calendar-studio
+git clone https://github.com/Bensom1988/obsidian-calendar-studio
 cd obsidian-calendar-studio
 npm install
 npm run build
@@ -154,12 +154,12 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 
 1. 安装 [BRAT](https://github.com/Tepb0/obsidian-brat) 社区插件。
 2. 打开 BRAT 设置，点 **Add new plugin**，填入：
-   `https://github.com/bensom/obsidian-calendar-studio`
+   `https://github.com/Bensom1988/obsidian-calendar-studio`
 3. 点 **Install** — BRAT 会自动下载最新版本。
 
 **方式 B — 手动**
 
-从[最新版本](https://github.com/bensom/obsidian-calendar-studio/releases/latest)下载
+从[最新版本](https://github.com/Bensom1988/obsidian-calendar-studio/releases/latest)下载
 `main.js`、`manifest.json`、`styles.css`，放进
 `<你的库>/.obsidian/plugins/calendar-studio/`，然后在 *设置 → 第三方插件*
 里启用 **Calendar Studio**。
@@ -167,7 +167,7 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 **方式 C — 从源码构建**
 
 ```bash
-git clone https://github.com/bensom/obsidian-calendar-studio
+git clone https://github.com/Bensom1988/obsidian-calendar-studio
 cd obsidian-calendar-studio
 npm install
 npm run build
