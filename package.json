@@ -1,6 +1,6 @@
 {
   "name": "obsidian-calendar-studio",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "An Apple-inspired, bilingual calendar for Obsidian that unifies vault dates, tasks and external CalDAV calendars, and drives your note workflows.",
   "main": "main.js",
   "license": "MIT",

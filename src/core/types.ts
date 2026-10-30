@@ -95,6 +95,8 @@ export interface WorkflowSettings {
 	taskTemplatePath: string;
 	/** Where generated task lines are written. Empty = the day's daily note. */
 	taskTargetPath: string;
+	/** Where the exported `.ics` files are written. Empty = the vault root. */
+	exportFolder: string;
 	/** Add tasks to the target instead of replacing what is already there. */
 	appendTasks: boolean;
 }
@@ -145,6 +147,36 @@ export interface CalDavAccount {
 
 export type UiLanguage = 'en' | 'zh-CN';
 
+export type ReportPeriod = 'week' | 'month' | 'year';
+
+/**
+ * Periodic report & optional AI summary settings.
+ *
+ * All paths, filename patterns and prompts are generic settings — nothing
+ * personal is hard-coded, and the API key is read from Obsidian's secret
+ * storage or an environment variable name.
+ */
+export interface AiReportSettings {
+	/** Call an OpenAI-compatible API to write a narrative summary. */
+	enabled: boolean;
+	/** Base URL of the OpenAI-compatible API, e.g. `https://api.deepseek.com/v1`. */
+	baseUrl: string;
+	/** Model identifier, e.g. `deepseek-chat`. */
+	model: string;
+	/** Environment variable name checked when no secret is stored in Obsidian. */
+	apiKeyEnv: string;
+	/** Folder where periodic reports are written. */
+	reportFolder: string;
+	/** Filename pattern for weekly reports (`YYYY`, `WW`, `MM`, `DD`). */
+	weeklyFormat: string;
+	/** Filename pattern for monthly reports. */
+	monthlyFormat: string;
+	/** Filename pattern for annual reports. */
+	yearlyFormat: string;
+	/** Optional custom system prompt for the AI model. */
+	systemPrompt: string;
+}
+
 export interface CalendarStudioSettings {
 	language: UiLanguage;
 	/** BCP-47 tag used for date formatting. */
@@ -158,6 +190,7 @@ export interface CalendarStudioSettings {
 	tasks: TasksSettings;
 	caldav: CalDavSettings;
 	workflow: WorkflowSettings;
+	ai: AiReportSettings;
 }
 
 export const DEFAULT_PROPERTY_RULES: PropertyRule[] = [
@@ -205,5 +238,17 @@ export const DEFAULT_SETTINGS: CalendarStudioSettings = {
 		taskTemplatePath: '',
 		taskTargetPath: '',
 		appendTasks: true,
+		exportFolder: '',
+	},
+	ai: {
+		enabled: false,
+		baseUrl: 'https://api.deepseek.com/v1',
+		model: 'deepseek-chat',
+		apiKeyEnv: 'DEEPSEEK_API_KEY',
+		reportFolder: 'Reports',
+		weeklyFormat: 'YYYY-[W]WW',
+		monthlyFormat: 'YYYY-MM',
+		yearlyFormat: 'YYYY',
+		systemPrompt: '',
 	},
 };

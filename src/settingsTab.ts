@@ -28,6 +28,7 @@ export class CalendarStudioSettingTab extends PluginSettingTab {
 		this.renderFilenames(containerEl);
 		this.renderTasks(containerEl);
 		this.renderWorkflow(containerEl);
+		this.renderAi(containerEl);
 		this.renderCalDav(containerEl);
 	}
 
@@ -304,6 +305,155 @@ export class CalendarStudioSettingTab extends PluginSettingTab {
 					.setValue(workflow.taskTargetPath)
 					.onChange(async (value) => {
 						workflow.taskTargetPath = value.trim();
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.exportFolder'))
+			.setDesc(this.t('settings.exportFolderDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('Exports')
+					.setValue(workflow.exportFolder)
+					.onChange(async (value) => {
+						workflow.exportFolder = value.trim();
+						await this.plugin.saveSettings();
+					}),
+			);
+	}
+
+	private renderAi(container: HTMLElement): void {
+		const ai = this.plugin.settings.ai;
+
+		new Setting(container)
+			.setName(this.t('settings.ai'))
+			.setDesc(this.t('settings.aiDesc'))
+			.setHeading();
+
+		new Setting(container)
+			.setName(this.t('settings.reportFolder'))
+			.setDesc(this.t('settings.reportFolderDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('Reports')
+					.setValue(ai.reportFolder)
+					.onChange(async (value) => {
+						ai.reportFolder = normaliseFolder(value);
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.weeklyFormat'))
+			.setDesc(this.t('settings.weeklyFormatDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('YYYY-[W]WW')
+					.setValue(ai.weeklyFormat)
+					.onChange(async (value) => {
+						ai.weeklyFormat = value.trim() || 'YYYY-[W]WW';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.monthlyFormat'))
+			.setDesc(this.t('settings.monthlyFormatDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('YYYY-MM')
+					.setValue(ai.monthlyFormat)
+					.onChange(async (value) => {
+						ai.monthlyFormat = value.trim() || 'YYYY-MM';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.yearlyFormat'))
+			.setDesc(this.t('settings.yearlyFormatDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('YYYY')
+					.setValue(ai.yearlyFormat)
+					.onChange(async (value) => {
+						ai.yearlyFormat = value.trim() || 'YYYY';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.aiEnabled'))
+			.setDesc(this.t('settings.aiEnabledDesc'))
+			.addToggle((toggle) =>
+				toggle.setValue(ai.enabled).onChange(async (value) => {
+					ai.enabled = value;
+					await this.plugin.saveSettings();
+					this.display();
+				}),
+			);
+
+		if (!ai.enabled) return;
+
+		new Setting(container)
+			.setName(this.t('settings.aiBaseUrl'))
+			.setDesc(this.t('settings.aiBaseUrlDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('https://api.deepseek.com/v1')
+					.setValue(ai.baseUrl)
+					.onChange(async (value) => {
+						ai.baseUrl = value.trim() || 'https://api.deepseek.com/v1';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.aiModel'))
+			.setDesc(this.t('settings.aiModelDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('deepseek-chat')
+					.setValue(ai.model)
+					.onChange(async (value) => {
+						ai.model = value.trim() || 'deepseek-chat';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.aiApiKey'))
+			.setDesc(this.t('settings.aiApiKeyDesc'))
+			.addText((text) => {
+				text.inputEl.type = 'password';
+				text.setValue(this.plugin.getAiApiKey());
+				text.inputEl.addEventListener('blur', () => {
+					this.plugin.setAiApiKey(text.getValue().trim());
+				});
+			});
+
+		new Setting(container)
+			.setName(this.t('settings.aiApiKeyEnv'))
+			.setDesc(this.t('settings.aiApiKeyEnvDesc'))
+			.addText((text) =>
+				text
+					.setPlaceholder('DEEPSEEK_API_KEY')
+					.setValue(ai.apiKeyEnv)
+					.onChange(async (value) => {
+						ai.apiKeyEnv = value.trim();
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.aiSystemPrompt'))
+			.setDesc(this.t('settings.aiSystemPromptDesc'))
+			.addTextArea((area) =>
+				area
+					.setValue(ai.systemPrompt)
+					.onChange(async (value) => {
+						ai.systemPrompt = value;
 						await this.plugin.saveSettings();
 					}),
 			);

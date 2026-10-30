@@ -11,6 +11,15 @@ export default {
 	'command.generateTasks': '把选中日期的事项变成任务',
 	'command.syncCalDav': '同步外部日历',
 
+	'command.exportIcs': '导出 ICS 日历',
+
+	'export.icsName': 'Obsidian 日历',
+
+	'notice.icsExported': '已导出 {{count}} 项安排到 {{path}}',
+	'notice.icsEmpty': '这个月没有可导出的安排。',
+	'notice.icsFailed': '导出失败，详情见控制台。',
+
+	'embed.agenda': '日历安排',
 	'view.month': '月',
 	'view.agenda': '议程',
 	'view.today': '今天',
@@ -129,6 +138,8 @@ export default {
 
 	'settings.workflow': '日记与任务',
 	'settings.workflowDesc': '日历上的一天，如何变成一篇笔记或一组任务。',
+	'settings.exportFolder': '导出目录',
+	'settings.exportFolderDesc': '导出的 .ics 文件放在这里；留空则放在库根目录。',
 	'settings.useCoreDailyNotes': '跟随 Obsidian 的日记设置',
 	'settings.useCoreDailyNotesDesc': '启用「日记」核心插件时，沿用它配置的文件夹、格式与模板。',
 	'settings.dailyNoteFolder': '日记文件夹',
@@ -143,6 +154,50 @@ export default {
 		'模板文件路径，每行一条任务模板。可用占位符：{{title}}、{{date}}、{{time}}。',
 	'settings.taskTargetPath': '任务写入位置',
 	'settings.taskTargetPathDesc': '生成的任务写到哪里，留空表示写入当天的日记。',
+
+	'command.generateWeeklyReport': '生成周报',
+	'command.generateMonthlyReport': '生成月报',
+	'command.generateYearlyReport': '生成年报',
+
+	'action.weeklyReport': '周报',
+	'action.weeklyReportDesc': '生成当前选中周的周期报告。',
+	'action.monthlyReport': '月报',
+	'action.monthlyReportDesc': '生成当前选中月的周期报告。',
+	'action.yearlyReport': '年报',
+	'action.yearlyReportDesc': '生成当前选中年份的年度报告。',
+
+	'notice.reportGenerating': '正在生成周期报告……',
+	'notice.reportSaved': '报告已写入 {{path}}（{{count}} 项）',
+	'notice.reportSavedAi': 'AI 报告已写入 {{path}}（{{count}} 项）',
+	'notice.reportAiFallback': '报告已写入 {{path}}（AI 总结未完成：{{message}}）',
+
+	'settings.ai': '周期报告与 AI 总结',
+	'settings.aiDesc':
+		'从日历安排、任务与笔记汇总周报、月报与年报；可选接入 OpenAI 兼容接口（如 DeepSeek）自动撰写周期复盘。',
+	'settings.aiEnabled': '启用 AI 周期总结',
+	'settings.aiEnabledDesc':
+		'生成周期报告时调用模型撰写总结。关闭时仍会生成结构化事项汇总。',
+	'settings.aiBaseUrl': 'API 接口地址',
+	'settings.aiBaseUrlDesc':
+		'OpenAI 兼容接口的基础地址，例如 https://api.deepseek.com/v1。',
+	'settings.aiModel': '模型名称',
+	'settings.aiModelDesc': '模型标识，例如 deepseek-chat。',
+	'settings.aiApiKey': 'API 密钥',
+	'settings.aiApiKeyDesc': '保存在 Obsidian 安全存储（系统钥匙串）中，不会写入仓库配置文件。',
+	'settings.aiApiKeyEnv': 'API 密钥环境变量名',
+	'settings.aiApiKeyEnvDesc':
+		'桌面端未配置钥匙串密钥时读取的环境变量名，例如 DEEPSEEK_API_KEY。',
+	'settings.reportFolder': '报告输出目录',
+	'settings.reportFolderDesc': '周报、月报与年报写入的仓库文件夹。',
+	'settings.weeklyFormat': '周报文件名格式',
+	'settings.weeklyFormatDesc':
+		'支持 YYYY、WW、MM、DD（字面字符用 [W] 包裹），例如 YYYY-[W]WW。',
+	'settings.monthlyFormat': '月报文件名格式',
+	'settings.monthlyFormatDesc': '月报文件名格式，例如 YYYY-MM。',
+	'settings.yearlyFormat': '年报文件名格式',
+	'settings.yearlyFormatDesc': '年报文件名格式，例如 YYYY。',
+	'settings.aiSystemPrompt': '自定义系统提示词',
+	'settings.aiSystemPromptDesc': '可选的模型系统提示词，留空则使用内置复盘提示词。',
 
 	'common.enabled': '已启用',
 	'common.disabled': '已停用',

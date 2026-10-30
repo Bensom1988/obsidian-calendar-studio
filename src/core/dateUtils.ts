@@ -218,8 +218,14 @@ export function formatDatePattern(
 	];
 
 	let result = pattern;
+	const literals: string[] = [];
+	result = result.replace(/\[([^\]]*)\]/g, (_, literal: string) => {
+		const idx = literals.push(literal) - 1;
+		return `\u0000${idx}\u0000`;
+	});
 	for (const [token, value] of tokens) {
 		result = result.split(token).join(value);
 	}
+	result = result.replace(/\u0000(\d+)\u0000/g, (_, idx: string) => literals[Number(idx)] ?? '');
 	return result;
 }

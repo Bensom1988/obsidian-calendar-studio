@@ -101,7 +101,7 @@ export class MiniCalendarView extends ItemView {
 			if (settings.showLunar) {
 				const lunar = getLunarInfo(day);
 				const lunarEl = cell.createSpan({ cls: 'cs-mini-lunar' });
-				lunarEl.setText(lunar.jieQi || lunar.festival || lunar.day);
+				lunarEl.setText(lunar.shortLabel);
 			}
 
 			if (index.getEventsOnDate(day).length > 0) {

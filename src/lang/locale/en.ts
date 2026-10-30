@@ -11,6 +11,15 @@ export default {
 	'command.generateTasks': 'Turn the selected day into tasks',
 	'command.syncCalDav': 'Sync external calendars',
 
+	'command.exportIcs': 'Export ICS calendar',
+
+	'export.icsName': 'Obsidian calendar',
+
+	'notice.icsExported': 'Exported {{count}} events to {{path}}',
+	'notice.icsEmpty': 'There are no events to export this month.',
+	'notice.icsFailed': 'The export failed, see the console for details.',
+
+	'embed.agenda': 'Calendar',
 	'view.month': 'Month',
 	'view.agenda': 'Agenda',
 	'view.today': 'Today',
@@ -159,6 +168,56 @@ export default {
 	'settings.taskTargetPath': 'Task target note',
 	'settings.taskTargetPathDesc':
 		'Where the generated tasks are written. Empty means the daily note of that day.',
+	'settings.exportFolder': 'Export folder',
+	'settings.exportFolderDesc':
+		'Where the exported .ics files are written. Empty means the vault root.',
+
+	'command.generateWeeklyReport': 'Generate weekly report',
+	'command.generateMonthlyReport': 'Generate monthly report',
+	'command.generateYearlyReport': 'Generate annual report',
+
+	'action.weeklyReport': 'Weekly report',
+	'action.weeklyReportDesc': 'Generate the weekly report for the selected week.',
+	'action.monthlyReport': 'Monthly report',
+	'action.monthlyReportDesc': 'Generate the monthly report for the selected month.',
+	'action.yearlyReport': 'Annual report',
+	'action.yearlyReportDesc': 'Generate the annual report for the selected year.',
+
+	'notice.reportGenerating': 'Generating report…',
+	'notice.reportSaved': 'Report saved to {{path}} ({{count}} items)',
+	'notice.reportSavedAi': 'AI report saved to {{path}} ({{count}} items)',
+	'notice.reportAiFallback': 'Report saved to {{path}} (AI skipped: {{message}})',
+
+	'settings.ai': 'Periodic reports & AI',
+	'settings.aiDesc':
+		'Generate weekly, monthly and annual reports from calendar events, with optional AI narrative summaries via an OpenAI-compatible API (such as DeepSeek).',
+	'settings.aiEnabled': 'Enable AI narrative summary',
+	'settings.aiEnabledDesc':
+		'Call the configured model when generating a periodic report. When off, reports still include the structured event overview.',
+	'settings.aiBaseUrl': 'API base URL',
+	'settings.aiBaseUrlDesc':
+		'OpenAI-compatible endpoint base URL, e.g. https://api.deepseek.com/v1.',
+	'settings.aiModel': 'Model',
+	'settings.aiModelDesc': 'Model identifier, e.g. deepseek-chat.',
+	'settings.aiApiKey': 'API key',
+	'settings.aiApiKeyDesc':
+		'Stored in Obsidian secret storage (never written to the vault settings file).',
+	'settings.aiApiKeyEnv': 'API key environment variable',
+	'settings.aiApiKeyEnvDesc':
+		'Fallback environment variable name on desktop when no secret is stored, e.g. DEEPSEEK_API_KEY.',
+	'settings.reportFolder': 'Report folder',
+	'settings.reportFolderDesc':
+		'Vault folder where weekly, monthly and annual reports are written.',
+	'settings.weeklyFormat': 'Weekly report filename format',
+	'settings.weeklyFormatDesc':
+		'Pattern using YYYY, WW, MM, DD (use [W] for literal characters), e.g. YYYY-[W]WW.',
+	'settings.monthlyFormat': 'Monthly report filename format',
+	'settings.monthlyFormatDesc': 'Pattern for monthly reports, e.g. YYYY-MM.',
+	'settings.yearlyFormat': 'Annual report filename format',
+	'settings.yearlyFormatDesc': 'Pattern for annual reports, e.g. YYYY.',
+	'settings.aiSystemPrompt': 'Custom system prompt',
+	'settings.aiSystemPromptDesc':
+		'Optional instructions for the AI model. Leave empty to use the built-in review prompt.',
 
 	'common.enabled': 'Enabled',
 	'common.disabled': 'Disabled',

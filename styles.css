@@ -196,6 +196,25 @@
 	color: var(--text-accent);
 }
 
+.cs-day-holiday-badge {
+	font-size: 9px;
+	font-weight: 600;
+	line-height: 1;
+	padding: 2px 3.5px;
+	border-radius: 4px;
+	flex-shrink: 0;
+}
+
+.cs-day-holiday-badge.is-rest {
+	color: var(--color-green);
+	background: rgba(46, 160, 67, 0.14);
+}
+
+.cs-day-holiday-badge.is-work {
+	color: var(--color-orange);
+	background: rgba(210, 153, 34, 0.16);
+}
+
 .cs-dots {
 	display: flex;
 	align-items: center;
@@ -383,4 +402,89 @@
 .cs-source-caldav {
 	--cs-dot-color: var(--color-purple);
 	--cs-event-color: var(--color-purple);
+}
+
+/* ----------------------------------------------------------- embedded block */
+
+.cs-embed {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--cs-radius);
+	padding: 12px 14px;
+	background: var(--background-primary);
+	margin: 10px 0;
+}
+
+.cs-embed-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-bottom: 8px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.cs-embed-head-title {
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.cs-embed-count {
+	font-size: 11.5px;
+	color: var(--text-muted);
+}
+
+.cs-embed-grid {
+	margin-bottom: 10px;
+}
+
+.cs-embed-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cs-embed-event {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: 7px 10px;
+	border-radius: var(--cs-radius-sm);
+	background: var(--background-secondary);
+	border-left: 3px solid var(--cs-event-color, var(--interactive-accent));
+}
+
+.cs-embed-date {
+	font-size: 11.5px;
+	color: var(--text-muted);
+	min-width: 78px;
+	flex-shrink: 0;
+}
+
+.cs-embed-title {
+	font-size: 13px;
+	line-height: 1.4;
+	flex: 1;
+}
+
+.cs-embed-title.is-link {
+	cursor: pointer;
+	text-decoration: underline dotted;
+	text-underline-offset: 3px;
+}
+
+.cs-embed-calendar {
+	font-size: 11px;
+	color: var(--text-muted);
+	background: var(--background-modifier-hover);
+	padding: 1px 6px;
+	border-radius: 999px;
+}
+
+.cs-embed-empty {
+	color: var(--text-faint);
+	padding: 14px 6px;
+	text-align: center;
+	font-size: 12.5px;
 }

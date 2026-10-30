@@ -13,4 +13,15 @@ declare module 'lunar-javascript' {
 		getLunar(): Lunar;
 		getFestivals(): string[];
 	}
+
+	export class Holiday {
+		getDay(): string;
+		getName(): string;
+		isWork(): boolean;
+		getTarget(): string;
+	}
+
+	export class HolidayUtil {
+		static getHoliday(year: number, month: number, day: number): Holiday | null;
+	}
 }

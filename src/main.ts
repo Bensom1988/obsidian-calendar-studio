@@ -1,4 +1,4 @@
-import { Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { Notice, Plugin, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
 import { EventIndex } from './core/eventIndex';
 import { CalendarState } from './core/calendarState';
 import { FrontmatterSource } from './sources/frontmatter';
@@ -30,19 +30,25 @@ export interface ImportSummary {
 	passwords: number;
 }
 import { MonthView, MONTH_VIEW_TYPE } from './ui/monthView';
+import { CalendarStudioBlock, registerCalendarStudioBlocks } from './ui/embedBlock';
+import { buildIcs, icsFileName } from './export/ics';
 import { MiniCalendarView, MINI_VIEW_TYPE } from './ui/miniCalendar';
 import { CalendarStudioSettingTab } from './settingsTab';
 import { translate } from './i18n';
 import { createOrUpdateDailyNote } from './workflow/dailyNote';
 import { generateTasksForDay } from './workflow/taskGenerator';
+import { generatePeriodicReport, reportPeriodRange } from './workflow/reportGenerator';
+import { createAiClient, resolveAiApiKey } from './ai/client';
 import {
 	DEFAULT_SETTINGS,
 	type CalendarStudioSettings,
 	type CalDavAccount,
 	type CalDavSettings,
 	type EventSource,
+	type ReportPeriod,
 } from './core/types';
 import { addMonths, startOfDay } from './core/dateUtils';
+import { ensureFolder } from './core/vaultHelpers';
 
 export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	settings!: CalendarStudioSettings;
@@ -73,6 +79,9 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	 */
 	private saveQueue: Promise<void> = Promise.resolve();
 
+	/** The code blocks inside notes that show the calendar. */
+	private embedBlocks: CalendarStudioBlock[] = [];
+
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		// The CalDAV client talks to the server through Obsidian's own
@@ -85,6 +94,7 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 		this.registerView(MINI_VIEW_TYPE, (leaf: WorkspaceLeaf) => new MiniCalendarView(leaf, this));
 
 		this.addSettingTab(new CalendarStudioSettingTab(this.app, this));
+		registerCalendarStudioBlocks(this);
 
 		this.ribbonIcon = this.addRibbonIcon(
 			'calendar',
@@ -136,6 +146,38 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 		});
 
 		this.addCommand({
+			id: 'export-ics',
+			name: translate(this.settings.language, 'command.exportIcs'),
+			callback: () => {
+				void this.exportIcs();
+			},
+		});
+
+		this.addCommand({
+			id: 'generate-weekly-report',
+			name: translate(this.settings.language, 'command.generateWeeklyReport'),
+			callback: () => {
+				void this.generateReport(this.state.selected, 'week');
+			},
+		});
+
+		this.addCommand({
+			id: 'generate-monthly-report',
+			name: translate(this.settings.language, 'command.generateMonthlyReport'),
+			callback: () => {
+				void this.generateReport(this.state.selected, 'month');
+			},
+		});
+
+		this.addCommand({
+			id: 'generate-yearly-report',
+			name: translate(this.settings.language, 'command.generateYearlyReport'),
+			callback: () => {
+				void this.generateReport(this.state.selected, 'year');
+			},
+		});
+
+		this.addCommand({
 			id: 'sync-caldav',
 			name: translate(this.settings.language, 'command.syncCalDav'),
 			callback: () => {
@@ -145,6 +187,8 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 
 		this.buildSources();
 		this.startAutoSync();
+		// A note with a calendar block follows the index.
+		this.index.onChange(() => this.refreshEmbedBlocks());
 
 		// Frontmatter changes surface through the metadata cache, file edits
 		// through the vault. Both only schedule a rebuild — the index itself
@@ -204,6 +248,11 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 			DEFAULT_SETTINGS.workflow,
 			this.settings.workflow ?? {},
 		);
+		this.settings.ai = Object.assign(
+			{},
+			DEFAULT_SETTINGS.ai,
+			this.settings.ai ?? {},
+		);
 
 		// Accounts written by an older version have no calendar list yet.
 		for (const account of this.settings.caldav.accounts ?? []) {
@@ -226,6 +275,7 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 		// Recreating the sources already triggers a fresh index.
 		this.buildSources();
 		this.startAutoSync();
+		this.refreshEmbedBlocks();
 		if (this.ribbonIcon) {
 			this.ribbonIcon.setAttribute(
 				'aria-label',
@@ -255,6 +305,73 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	/** The events of an external calendar changed — refresh the index. */
 	onEventsChanged(): void {
 		this.index.scheduleRebuild();
+	}
+
+	/** Translate a key with the language of the interface. */
+	t(key: string, vars?: Record<string, string | number>): string {
+		return translate(this.settings.language, key, vars);
+	}
+
+	/** Remember a code block so it can be drawn again after a change. */
+	registerEmbedBlock(block: CalendarStudioBlock): void {
+		this.embedBlocks.push(block);
+	}
+
+	unregisterEmbedBlock(block: CalendarStudioBlock): void {
+		this.embedBlocks = this.embedBlocks.filter((item) => item !== block);
+	}
+
+	/**
+	 * Write the events of the current month into an `.ics` file.
+	 *
+	 * The file lands in the vault so it can be shared, synced or imported
+	 * by another program.
+	 */
+	async exportIcs(): Promise<void> {
+		const language = this.settings.language;
+		const anchor = this.state.anchor;
+		const from = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+		const to = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1);
+		const events = this.index.getEventsInRange(from, to);
+		if (events.length === 0) {
+			new Notice(translate(language, 'notice.icsEmpty'));
+			return;
+		}
+		const folder = this.settings.workflow.exportFolder.trim();
+		const path = normalizePath(
+			folder
+				? `${folder}/${icsFileName('calendar', anchor)}`
+				: icsFileName('calendar', anchor),
+		);
+		const content = buildIcs(events, {
+			name: translate(language, 'export.icsName'),
+		});
+		try {
+			if (folder) {
+				await ensureFolder(this.app, folder);
+			}
+			const existing = this.app.vault.getAbstractFileByPath(path);
+			if (existing instanceof TFile) {
+				await this.app.vault.modify(existing, content);
+			} else {
+				await this.app.vault.create(path, content);
+			}
+			new Notice(translate(language, 'notice.icsExported', { count: events.length, path }));
+		} catch (error) {
+			console.error('[calendar-studio] ICS export failed:', error);
+			new Notice(translate(language, 'notice.icsFailed'));
+		}
+	}
+
+	/** Draw the code blocks again — the events have changed. */
+	refreshEmbedBlocks(): void {
+		for (const block of this.embedBlocks) {
+			try {
+				block.render();
+			} catch {
+				// A block that cannot be drawn must not break the others.
+			}
+		}
 	}
 
 	/** Title used for external events that have no summary. */
@@ -450,6 +567,86 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 			);
 		} catch (error) {
 			console.error('[calendar-studio] task generation failed:', error);
+			new Notice(translate(language, 'notice.failed'));
+		}
+	}
+
+	/** Read the AI API key stored in Obsidian's secret storage, if any. */
+	getAiApiKey(): string {
+		return this.credentials.get('ai-api-key') ?? '';
+	}
+
+	/** Save the AI API key into Obsidian's secret storage. */
+	setAiApiKey(apiKey: string): boolean {
+		return this.credentials.set('ai-api-key', apiKey);
+	}
+
+	/** Generate a weekly, monthly or annual report note around `date`. */
+	async generateReport(date: Date, period: ReportPeriod): Promise<void> {
+		const language = this.settings.language;
+		try {
+			if (this.settings.ai.enabled) {
+				new Notice(translate(language, 'notice.reportGenerating'));
+			}
+			const range = reportPeriodRange(date, period, this.settings.weekStart);
+			const events = this.index.getEventsInRange(range.from, range.to);
+			const apiKey = resolveAiApiKey({
+				secretKey: this.getAiApiKey(),
+				envVarName: this.settings.ai.apiKeyEnv,
+			});
+			const aiClient =
+				this.settings.ai.enabled && apiKey
+					? createAiClient(
+							{
+								baseUrl: this.settings.ai.baseUrl,
+								model: this.settings.ai.model,
+								apiKey,
+							},
+							createObsidianFetch(),
+						)
+					: null;
+
+			const outcome = await generatePeriodicReport({
+				app: this.app,
+				date,
+				period,
+				weekStart: this.settings.weekStart,
+				events,
+				settings: this.settings.ai,
+				locale: this.settings.locale,
+				language,
+				aiClient,
+			});
+
+			if (outcome.aiError) {
+				new Notice(
+					translate(language, 'notice.reportAiFallback', {
+						path: outcome.path,
+						message: outcome.aiError,
+					}),
+				);
+			} else if (outcome.usedAi) {
+				new Notice(
+					translate(language, 'notice.reportSavedAi', {
+						path: outcome.path,
+						count: outcome.eventCount,
+					}),
+				);
+			} else {
+				new Notice(
+					translate(language, 'notice.reportSaved', {
+						path: outcome.path,
+						count: outcome.eventCount,
+					}),
+				);
+			}
+
+			const file = this.app.vault.getAbstractFileByPath(outcome.path);
+			if (file instanceof TFile) {
+				await this.app.workspace.getLeaf(false).openFile(file);
+			}
+		} catch (error) {
+			console.error('[calendar-studio] report generation failed:', error);
 			new Notice(translate(language, 'notice.failed'));
 		}
 	}

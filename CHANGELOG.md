@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-30
+
+### Added
+
+- **P3 — Embedded code block & ICS export**:
+  - Live `calendar-studio` fenced code block supporting `type: agenda | day | week | month`, `date`, `days`, `limit`, `calendar`, and `source` filters.
+  - "导出 ICS 日历 / Export ICS calendar" command (RFC 5545 compliant, line folding, text escaping, configurable export folder).
+- **P4 — Periodic reports & optional AI narrative summary**:
+  - Commands and toolbar buttons for Weekly (`YYYY-[W]WW`), Monthly (`YYYY-MM`) and Annual (`YYYY`) reports.
+  - Structured Markdown overview grouping schedules, completed tasks, open tasks and dated notes inside `<!-- calendar-studio:report:start -->` … `<!-- calendar-studio:report:end -->` markers so personal notes outside the block are preserved.
+  - Optional OpenAI-compatible AI summary (defaults to DeepSeek API `deepseek-chat`), reading the API key from Obsidian's secret storage or a configurable environment variable (`DEEPSEEK_API_KEY`).
+- **P5 — Lunar calendar, solar terms, statutory holidays & UI polish**:
+  - Statutory Chinese holidays (`休`) and makeup workdays (`班`) badges on the month grid, plus lunar month names on the first day of each lunar month (`初一`).
+  - Selected date's full lunar date and solar term shown in the main view toolbar.
+  - Main month view now renders the selected day's agenda directly beneath the month grid.
+
+### Fixed
+
+- Week-number column in the main month grid now renders once per week row instead of before every day cell.
+- "Today" highlight in the main month grid now checks the full year as well as month and day.
+- Escaped literal brackets (such as `YYYY-[W]WW`) are now supported in date patterns.
+
 ## [0.3.0] - 2026-10-30
 
 ### Added

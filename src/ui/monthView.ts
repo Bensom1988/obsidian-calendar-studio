@@ -5,6 +5,7 @@ import {
 	formatFullDate,
 	formatMonthTitle,
 	formatTime,
+	isToday,
 	isoWeekNumber,
 	toDateKey,
 	weekdayLabels,
@@ -117,7 +118,11 @@ export class MonthView extends ItemView {
 		const toolbar = container.createDiv({ cls: 'cs-toolbar' });
 
 		const selected = toolbar.createSpan({ cls: 'cs-toolbar-date' });
-		selected.setText(formatFullDate(state.selected, locale));
+		const selectedLunar = settings.showLunar ? getLunarInfo(state.selected) : null;
+		const lunarSuffix = selectedLunar?.label
+			? ` · ${selectedLunar.label}${selectedLunar.jieQi ? ` (${selectedLunar.jieQi})` : ''}`
+			: '';
+		selected.setText(`${formatFullDate(state.selected, locale)}${lunarSuffix}`);
 
 		const dailyNote = toolbar.createEl('button', { cls: 'cs-button' });
 		dailyNote.setText(this.t('action.createDailyNote'));
@@ -135,6 +140,30 @@ export class MonthView extends ItemView {
 			void this.plugin.generateTasks(state.selected);
 		});
 
+		const weekly = toolbar.createEl('button', { cls: 'cs-button' });
+		weekly.setText(this.t('action.weeklyReport'));
+		weekly.setAttribute('aria-label', this.t('action.weeklyReportDesc'));
+		weekly.setAttribute('title', this.t('action.weeklyReportDesc'));
+		weekly.addEventListener('click', () => {
+			void this.plugin.generateReport(state.selected, 'week');
+		});
+
+		const monthly = toolbar.createEl('button', { cls: 'cs-button' });
+		monthly.setText(this.t('action.monthlyReport'));
+		monthly.setAttribute('aria-label', this.t('action.monthlyReportDesc'));
+		monthly.setAttribute('title', this.t('action.monthlyReportDesc'));
+		monthly.addEventListener('click', () => {
+			void this.plugin.generateReport(state.selected, 'month');
+		});
+
+		const yearly = toolbar.createEl('button', { cls: 'cs-button' });
+		yearly.setText(this.t('action.yearlyReport'));
+		yearly.setAttribute('aria-label', this.t('action.yearlyReportDesc'));
+		yearly.setAttribute('title', this.t('action.yearlyReportDesc'));
+		yearly.addEventListener('click', () => {
+			void this.plugin.generateReport(state.selected, 'year');
+		});
+
 		/* ---------------------------------------------------------------- */
 		/* Body                                                              */
 		/* ---------------------------------------------------------------- */
@@ -142,9 +171,8 @@ export class MonthView extends ItemView {
 
 		if (this.mode === 'month') {
 			this.renderGrid(body, locale);
-		} else {
-			this.renderAgenda(body, locale);
 		}
+		this.renderAgenda(body, locale);
 	}
 
 	private renderGrid(container: HTMLElement, locale: string): void {
@@ -171,15 +199,16 @@ export class MonthView extends ItemView {
 		const days = buildMonthGrid(state.anchor, settings.weekStart);
 		const anchorMonth = state.anchor.getMonth();
 
-		for (const day of days) {
-			if (showWeeks) {
+		for (let dayIdx = 0; dayIdx < days.length; dayIdx += 1) {
+			const day = days[dayIdx];
+			if (showWeeks && dayIdx % 7 === 0) {
 				const weekCell = table.createDiv({ cls: 'cs-weeknumber' });
 				weekCell.setText(String(isoWeekNumber(day)));
 			}
 
 			const cell = table.createDiv({ cls: 'cs-day' });
 			if (day.getMonth() !== anchorMonth) cell.addClass('is-outside');
-			if (day.getDate() === new Date().getDate() && day.getMonth() === new Date().getMonth()) {
+			if (isToday(day)) {
 				cell.addClass('is-today');
 			}
 			if (toDateKey(day) === toDateKey(state.selected)) cell.addClass('is-selected');
@@ -191,9 +220,16 @@ export class MonthView extends ItemView {
 			if (settings.showLunar) {
 				const lunar = getLunarInfo(day);
 				const lunarEl = head.createSpan({ cls: 'cs-day-lunar' });
-				const text = lunar.jieQi || lunar.festival || lunar.label;
-				lunarEl.setText(text);
-				if (lunar.jieQi || lunar.festival) lunarEl.addClass('is-highlight');
+				lunarEl.setText(lunar.shortLabel);
+				if (lunar.jieQi || lunar.festival || (!lunar.isWorkday && lunar.holiday)) {
+					lunarEl.addClass('is-highlight');
+				}
+				if (lunar.isWorkday !== undefined) {
+					const badge = head.createSpan({
+						cls: `cs-day-holiday-badge ${lunar.isWorkday ? 'is-work' : 'is-rest'}`,
+					});
+					badge.setText(lunar.isWorkday ? '班' : '休');
+				}
 			}
 
 			const events = index.getEventsOnDate(day);

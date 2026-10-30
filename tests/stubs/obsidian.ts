@@ -26,6 +26,11 @@ export class WorkspaceLeaf {}
 export class Setting {}
 export class Notice {}
 export class Modal {}
+export class MarkdownRenderChild {
+	constructor(public containerEl: unknown) {}
+	onload(): void {}
+	onunload(): void {}
+}
 export class Plugin_ {}
 export const Platform = { isMobile: false, isDesktop: true };
 

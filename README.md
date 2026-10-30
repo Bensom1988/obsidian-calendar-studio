@@ -20,7 +20,7 @@ emoji on a task, a daily note called `2026-10-30.md`, a weekly review. No single
 plugin surfaces them all. Calendar Studio does, in one clean grid, and then
 *acts* on what you click.
 
-### Features (v0.2)
+### Features (v0.4)
 
 - **One calendar, many sources** — frontmatter properties, task lines, filename
   dates and external CalDAV calendars are normalised into a single event model.
@@ -43,9 +43,9 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
 | P0 | Engine, bilingual UI, vault sources, month views | ✅ done (2026-10-30) |
 | P1 | Task source, daily-note and task creation | ✅ done (2026-10-30) |
 | P2 | CalDAV sync (tsdav) with offline cache | ✅ done (2026-10-30) |
-| P3 | Embedded code block, ICS export | planned |
-| P4 | AI report generation | planned |
-| P5 | Polish, lunar/holiday data, tests, docs | planned |
+| P3 | Embedded code block, ICS export | ✅ done (2026-10-30) |
+| P4 | AI report generation | ✅ done (2026-10-30) |
+| P5 | Polish, lunar/holiday data, tests, docs | ✅ done (2026-10-30) |
 
 **P0 as shipped**
 
@@ -89,6 +89,21 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
   the vault — handy when the vault is synced through iCloud or Dropbox.
 - **Import from Full Calendar Remastered**: the accounts of that plugin —
   passwords included — move over in one click.
+
+**P3 as shipped**
+
+- Live `calendar-studio` fenced code block (`type: agenda | day | week | month`, `date`, `days`, `limit`, `calendar`, `source`) that automatically refreshes when the event index changes.
+- RFC 5545 `.ics` calendar export for the active month (`Export ICS calendar`), with configurable export folder.
+
+**P4 as shipped**
+
+- One-click **Weekly**, **Monthly** and **Annual** reports from the main calendar toolbar or command palette, written into configurable folder and filename patterns (`YYYY-[W]WW`, `YYYY-MM`, `YYYY`) between `<!-- calendar-studio:report:start -->` and `<!-- calendar-studio:report:end -->` markers so personal reflections outside the block are never overwritten.
+- Optional **AI narrative summary** via any OpenAI-compatible Chat Completions endpoint (defaults to DeepSeek `https://api.deepseek.com/v1` / `deepseek-chat`), reading the API key from Obsidian's secret storage or an environment variable (`DEEPSEEK_API_KEY`).
+
+**P5 as shipped**
+
+- Optional Chinese lunar dates, 24 solar terms (`节气`), traditional festivals, and statutory holiday / makeup workday badges (`休` / `班`).
+- Full unit test suite across all modules (`vitest`).
 
 ### CalDAV setup
 
@@ -173,7 +188,7 @@ Calendar Studio 把你的知识库变成一台日历。它读取笔记里藏着�
 frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真实日程，然后让你
 把日历上的任意一天变成一篇笔记、一个任务或一份报告。
 
-### 特性（v0.2）
+### 特性（v0.4）
 
 - **一个日历，多种来源** — frontmatter 属性、任务行、文件名日期、外部 CalDAV 日历，
   全部归一为同一个事件模型。
@@ -192,9 +207,9 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 | P0 | 引擎、双语界面、库内数据源、月历视图 | ✅ 已完成（2026-10-30） |
 | P1 | 任务源、日记与任务生成 | ✅ 已完成（2026-10-30） |
 | P2 | CalDAV 同步与离线缓存 | ✅ 已完成（2026-10-30） |
-| P3 | 可嵌入代码块、ICS 导出 | 计划中 |
-| P4 | AI 报告生成 | 计划中 |
-| P5 | 打磨、农历节假日数据、测试、文档 | 计划中 |
+| P3 | 可嵌入代码块、ICS 导出 | ✅ 已完成（2026-10-30） |
+| P4 | AI 报告生成 | ✅ 已完成（2026-10-30） |
+| P5 | 打磨、农历节假日数据、测试、文档 | ✅ 已完成（2026-10-30） |
 
 **P1 已交付**
 
@@ -219,6 +234,21 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 - 密码存在 Obsidian 的安全存储里，不会写进库文件——库用 iCloud 或 Dropbox 同步时，
   密码不会跟着明文到处跑。
 - 「从 Full Calendar Remastered 导入」：那个插件里的账号（含密码）一键接过来。
+
+**P3 已交付**
+
+- 笔记内可嵌入实时刷新的 `calendar-studio` 代码块（支持 `type: agenda | day | week | month`、`date`、`days`、`limit`、`calendar`、`source` 过滤）。
+- 「导出 ICS 日历」命令：将当月安排导出为标准 `.ics` 文件，导出目录可配置。
+
+**P4 已交付**
+
+- 一键生成**周报**（`YYYY-[W]WW`）、**月报**（`YYYY-MM`）、**年报**（`YYYY`），自动汇总当期日程、已完成任务、待办任务与关联笔记；写入 `<!-- calendar-studio:report:start -->` 与 `<!-- calendar-studio:report:end -->` 标记块之间，保留你在标记块外手写的复盘内容。
+- 可选 **AI 周期总结**：支持接入 DeepSeek 等任意 OpenAI 兼容接口（默认 `https://api.deepseek.com/v1` / `deepseek-chat`），API 密钥保存在 Obsidian 安全存储（系统钥匙串）或从环境变量（如 `DEEPSEEK_API_KEY`）读取，绝不写入仓库配置。
+
+**P5 已交付**
+
+- 农历日期（初一自动显示月份名）、二十四节气、传统节日，以及法定节假日/调休补班角标（`休` / `班`）。
+- 全面的单元测试覆盖（Vitest）。
 
 **CalDAV 配置**
 
