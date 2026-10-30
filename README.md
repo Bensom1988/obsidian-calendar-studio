@@ -20,7 +20,7 @@ emoji on a task, a daily note called `2026-10-30.md`, a weekly review. No single
 plugin surfaces them all. Calendar Studio does, in one clean grid, and then
 *acts* on what you click.
 
-### Features (v0.1 — in progress)
+### Features (v0.2)
 
 - **One calendar, many sources** — frontmatter properties, task lines, filename
   dates and external CalDAV calendars are normalised into a single event model.
@@ -138,7 +138,7 @@ Calendar Studio 把你的知识库变成一台日历。它读取笔记里藏着�
 frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真实日程，然后让你
 把日历上的任意一天变成一篇笔记、一个任务或一份报告。
 
-### 特性（v0.1 — 开发中）
+### 特性（v0.2）
 
 - **一个日历，多种来源** — frontmatter 属性、任务行、文件名日期、外部 CalDAV 日历，
   全部归一为同一个事件模型。

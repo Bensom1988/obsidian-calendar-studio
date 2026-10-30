@@ -6,8 +6,8 @@ hack on.
 ## Getting set up
 
 ```bash
-git clone https://github.com/bensom/dsh-plugin-dev
-cd dsh-plugin-dev/plugins/obsidian-calendar-studio
+git clone https://github.com/Bensom1988/obsidian-calendar-studio
+cd obsidian-calendar-studio
 npm install
 npm run dev
 ```
