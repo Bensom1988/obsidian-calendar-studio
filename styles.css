@@ -1,0 +1,386 @@
+/* ==========================================================================
+   Calendar Studio
+   An Apple-inspired calendar surface: hairline grid, one accent colour,
+   generous spacing, system typography. Light and dark follow Obsidian.
+   ========================================================================== */
+
+.cs-root {
+	--cs-radius-sm: 8px;
+	--cs-radius: 12px;
+	--cs-dot-color: var(--interactive-accent);
+	--cs-event-color: var(--interactive-accent);
+	font-family: var(--font-interface);
+	letter-spacing: -0.011em;
+	color: var(--text-normal);
+}
+
+/* ---------------------------------------------------------------- header */
+
+.cs-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 6px 10px;
+}
+
+.cs-nav {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.cs-title {
+	font-size: 1.3rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	margin: 0 10px;
+}
+
+.cs-actions {
+	margin-left: auto;
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.cs-icon-button {
+	width: 26px;
+	height: 26px;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 17px;
+	line-height: 1;
+	cursor: pointer;
+	border-radius: 7px;
+	transition: background-color 120ms ease, color 120ms ease;
+}
+
+.cs-icon-button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.cs-button {
+	border: none;
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	border-radius: 8px;
+	padding: 4px 11px;
+	font-size: 12.5px;
+	cursor: pointer;
+	transition: background-color 120ms ease;
+}
+
+.cs-button:hover {
+	background: var(--background-modifier-active-hover);
+}
+
+/* --------------------------------------------------------------- toolbar */
+
+.cs-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 6px 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	margin-bottom: 10px;
+}
+
+.cs-toolbar-date {
+	font-size: 12.5px;
+	color: var(--text-muted);
+	margin-right: auto;
+	letter-spacing: -0.01em;
+}
+
+/* ------------------------------------------------------------ month grid */
+
+.cs-body {
+	padding: 0 6px 20px;
+}
+
+.cs-grid {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 1px;
+	background: var(--background-modifier-border);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--cs-radius);
+	overflow: hidden;
+}
+
+.cs-grid-weeks {
+	grid-template-columns: 34px repeat(7, minmax(0, 1fr));
+}
+
+.cs-weeknumber-head,
+.cs-weeknumber {
+	background: var(--background-primary);
+	font-size: 10.5px;
+	color: var(--text-faint);
+	text-align: center;
+	padding: 4px 0;
+}
+
+.cs-weekday {
+	background: var(--background-primary);
+	padding: 7px 4px;
+	text-align: center;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.cs-weekday.is-weekend {
+	color: var(--text-faint);
+}
+
+.cs-day {
+	background: var(--background-primary);
+	min-height: 86px;
+	padding: 6px 7px 8px;
+	cursor: pointer;
+	transition: background-color 120ms ease;
+}
+
+.cs-day:hover {
+	background: var(--background-modifier-hover);
+}
+
+.cs-day.is-outside {
+	opacity: 0.38;
+}
+
+.cs-day.is-selected {
+	background: var(--background-modifier-hover);
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
+}
+
+.cs-day-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 4px;
+}
+
+.cs-day-number {
+	font-size: 12.5px;
+	font-weight: 500;
+	min-width: 21px;
+	height: 21px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+}
+
+.cs-day.is-today .cs-day-number {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-weight: 600;
+}
+
+.cs-day-lunar {
+	font-size: 10px;
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 62%;
+}
+
+.cs-day-lunar.is-highlight {
+	color: var(--text-accent);
+}
+
+.cs-dots {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	margin-top: 5px;
+	flex-wrap: wrap;
+}
+
+.cs-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 999px;
+	background: var(--cs-dot-color);
+}
+
+.cs-more {
+	font-size: 9.5px;
+	color: var(--text-faint);
+	margin-left: 1px;
+}
+
+/* ---------------------------------------------------------------- agenda */
+
+.cs-agenda-head {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-muted);
+	padding: 14px 4px 8px;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+}
+
+.cs-agenda {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.cs-event {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	padding: 9px 12px;
+	border-radius: var(--cs-radius-sm);
+	background: var(--background-secondary);
+	border-left: 3px solid var(--cs-event-color);
+}
+
+.cs-event-time {
+	font-size: 11.5px;
+	color: var(--text-muted);
+	min-width: 64px;
+	flex-shrink: 0;
+}
+
+.cs-event-title {
+	font-size: 13.5px;
+	line-height: 1.4;
+}
+
+.cs-event-title.is-link {
+	cursor: pointer;
+	text-decoration: underline dotted;
+	text-underline-offset: 3px;
+}
+
+.cs-empty {
+	color: var(--text-faint);
+	padding: 22px 8px;
+	text-align: center;
+	font-size: 13px;
+}
+
+/* ------------------------------------------------------------ mini month */
+
+.cs-mini {
+	padding: 2px 6px 10px;
+}
+
+.cs-mini-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 2px 0 6px;
+}
+
+.cs-mini-title {
+	font-size: 12.5px;
+	font-weight: 600;
+}
+
+.cs-mini-grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 1px;
+}
+
+.cs-mini-weekday {
+	font-size: 9.5px;
+	color: var(--text-faint);
+	text-align: center;
+	padding: 2px 0;
+}
+
+.cs-mini-weekday.is-weekend {
+	opacity: 0.7;
+}
+
+.cs-mini-day {
+	position: relative;
+	height: 30px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: background-color 120ms ease;
+}
+
+.cs-mini-day:hover {
+	background: var(--background-modifier-hover);
+}
+
+.cs-mini-day.is-outside {
+	opacity: 0.35;
+}
+
+.cs-mini-day.is-selected {
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
+}
+
+.cs-mini-number {
+	font-size: 11.5px;
+	min-width: 19px;
+	height: 19px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+}
+
+.cs-mini-day.is-today .cs-mini-number {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-weight: 600;
+}
+
+.cs-mini-lunar {
+	font-size: 8px;
+	color: var(--text-faint);
+	line-height: 1;
+	height: 9px;
+	overflow: hidden;
+}
+
+.cs-mini-dot {
+	position: absolute;
+	top: 2px;
+	right: 3px;
+	width: 3px;
+	height: 3px;
+	border-radius: 999px;
+	background: var(--interactive-accent);
+}
+
+/* ------------------------------------------------------------ source hues */
+
+.cs-source-frontmatter {
+	--cs-dot-color: var(--interactive-accent);
+	--cs-event-color: var(--interactive-accent);
+}
+
+.cs-source-filename {
+	--cs-dot-color: var(--color-orange);
+	--cs-event-color: var(--color-orange);
+}
+
+.cs-source-tasks {
+	--cs-dot-color: var(--color-green);
+	--cs-event-color: var(--color-green);
+}
+
+.cs-source-caldav {
+	--cs-dot-color: var(--color-purple);
+	--cs-event-color: var(--color-purple);
+}
