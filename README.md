@@ -41,7 +41,7 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
 | Phase | Scope | State |
 |---|---|---|
 | P0 | Engine, bilingual UI, vault sources, month views | ✅ done (2026-10-30) |
-| P1 | Task source, daily-note and task creation | planned |
+| P1 | Task source, daily-note and task creation | ✅ done (2026-10-30) |
 | P2 | CalDAV sync (tsdav) with offline cache | planned |
 | P3 | Embedded code block, ICS export | planned |
 | P4 | AI report generation | planned |
@@ -58,6 +58,19 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
   solar terms and festivals.
 - Incrementally rebuilt index — the vault is never re-scanned from scratch on
   every keystroke.
+
+**P1 as shipped**
+
+- A task source that understands the Tasks plugin notation (`📅` due, `⏳`
+  scheduled, `🛫` start) and inline fields (`[due:: 2026-10-30]`), with the
+  plugin's global filter honoured.
+- One click on any date writes that day's note: the agenda goes between
+  markers, your own text is never touched, and running it twice does not
+  duplicate anything.
+- The same click turns the day's schedule into Markdown tasks, either in the
+  daily note or in a note you choose.
+- Templates for both, with a date format you pick (`YYYY-MM-DD`,
+  `YYYY年MM月DD日`, …).
 
 ### Install
 
@@ -142,11 +155,21 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | P0 | 引擎、双语界面、库内数据源、月历视图 | ✅ 已完成（2026-10-30） |
-| P1 | 任务源、日记与任务生成 | 计划中 |
+| P1 | 任务源、日记与任务生成 | ✅ 已完成（2026-10-30） |
 | P2 | CalDAV 同步与离线缓存 | 计划中 |
 | P3 | 可嵌入代码块、ICS 导出 | 计划中 |
 | P4 | AI 报告生成 | 计划中 |
 | P5 | 打磨、农历节假日数据、测试、文档 | 计划中 |
+
+**P1 已交付**
+
+- 任务源：认识 Tasks 插件的记法（`📅` 截止、`⏳` 计划、`🛫` 开始）与内联字段
+  （`[due:: 2026-10-30]`），并遵循插件的全局过滤标签。
+- 点日历任意一天即可写入当天日记：日程写进标记块之间，你自己写的内容
+  一个字都不会动，重复点击也不会写出两份。
+- 同一次点击还能把当天日程变成 Markdown 任务，可以写进当天日记，也可以
+  写到你指定的文件。
+- 日记与任务都支持模板，日期格式随你选（`YYYY-MM-DD`、`YYYY年MM月DD日` 等）。
 
 ### 安装
 

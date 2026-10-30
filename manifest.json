@@ -1,7 +1,7 @@
 {
   "id": "calendar-studio",
   "name": "Calendar Studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "1.5.0",
   "description": "An Apple-inspired bilingual calendar that unifies vault dates, tasks and CalDAV schedules, and turns any date into a note, a task or a report.",
   "author": "bensom",
