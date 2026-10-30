@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type CalendarStudioPlugin from './main';
 import { translate } from './i18n';
-import type { PropertyKind, PropertyRule } from './core/types';
+import type { CalDavAccount, PropertyKind, PropertyRule } from './core/types';
 import { normaliseFolder } from './sources/folders';
 
 const KINDS: PropertyKind[] = ['start', 'due', 'end', 'allDay'];
@@ -310,31 +310,168 @@ export class CalendarStudioSettingTab extends PluginSettingTab {
 	}
 
 	private renderCalDav(container: HTMLElement): void {
+		const caldav = this.plugin.settings.caldav;
+
 		new Setting(container)
 			.setName(this.t('source.caldav'))
 			.setDesc(this.t('source.caldavDesc'))
 			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.caldav.enabled).onChange(async (value) => {
-					this.plugin.settings.caldav.enabled = value;
+				toggle.setValue(caldav.enabled).onChange(async (value) => {
+					caldav.enabled = value;
 					await this.plugin.saveSettings();
+					this.display();
 				}),
 			);
 
-		for (const account of this.plugin.settings.caldav.accounts) {
-			const setting = new Setting(container).setName(account.name || account.url);
-			setting.addText((text) =>
-				text.setPlaceholder(this.t('settings.accountName')).setValue(account.name).onChange(async (value) => {
-					account.name = value;
-					await this.plugin.saveSettings();
-				}),
+		if (!caldav.enabled) return;
+
+		new Setting(container)
+			.setName(this.t('settings.caldavAutoSync'))
+			.setDesc(this.t('settings.caldavAutoSyncDesc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('0', this.t('settings.caldavAutoSyncOff'))
+					.addOption('15', this.t('settings.caldavAutoSync15'))
+					.addOption('30', this.t('settings.caldavAutoSync30'))
+					.addOption('60', this.t('settings.caldavAutoSync60'))
+					.addOption('180', this.t('settings.caldavAutoSync180'))
+					.setValue(String(caldav.autoSyncMinutes))
+					.onChange(async (value) => {
+						caldav.autoSyncMinutes = Number(value);
+						await this.plugin.saveSettings();
+					}),
 			);
-			setting.addText((text) =>
-				text.setPlaceholder(this.t('settings.serverUrl')).setValue(account.url).onChange(async (value) => {
-					account.url = value.trim();
-					await this.plugin.saveSettings();
-				}),
+
+		new Setting(container)
+			.setName(this.t('settings.caldavRange'))
+			.setDesc(this.t('settings.caldavRangeDesc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('0', this.t('settings.caldavRangeCurrent'))
+					.addOption('1', this.t('settings.caldavRangeOne'))
+					.addOption('3', this.t('settings.caldavRangeThree'))
+					.setValue(String(caldav.rangeMonths))
+					.onChange(async (value) => {
+						caldav.rangeMonths = Number(value);
+						await this.plugin.saveSettings();
+					}),
 			);
-			setting.addExtraButton((button) =>
+
+		new Setting(container)
+			.setName(this.t('settings.accounts'))
+			.setDesc(this.t('settings.caldavPasswordWarning'))
+			.addButton((button) =>
+				button
+					.setButtonText(this.t('settings.caldavSyncNow'))
+					.setCta()
+					.onClick(async () => {
+						await this.plugin.syncCalDav();
+						this.display();
+					}),
+			);
+
+		for (const account of caldav.accounts) {
+			this.renderCalDavAccount(container, account);
+		}
+
+		new Setting(container).addButton((button) =>
+			button
+				.setButtonText(this.t('settings.addAccount'))
+				.onClick(async () => {
+					caldav.accounts.push({
+						id: `caldav_${Date.now()}`,
+						name: this.t('settings.accountName'),
+						url: '',
+						username: '',
+						password: '',
+						color: '#6b7fd7',
+						authMethod: 'basic',
+						calendars: [],
+					});
+					await this.plugin.saveSettings();
+					this.display();
+				}),
+		);
+	}
+
+	/** One account: its credentials, its calendars and its last sync. */
+	private renderCalDavAccount(container: HTMLElement, account: CalDavAccount): void {
+		new Setting(container)
+			.setName(account.name || account.url || this.t('settings.accountName'))
+			.setDesc(account.url);
+
+		new Setting(container)
+			.setName(this.t('settings.accountName'))
+			.addText((text) =>
+				text
+					.setPlaceholder(this.t('settings.accountName'))
+					.setValue(account.name)
+					.onChange(async (value) => {
+						account.name = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.serverUrl'))
+			.setDesc('https://example.com/dav/')
+			.addText((text) =>
+				text
+					.setPlaceholder('https://example.com/dav/')
+					.setValue(account.url)
+					.onChange(async (value) => {
+						account.url = value.trim();
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.username'))
+			.addText((text) =>
+				text
+					.setPlaceholder('me@example.com')
+					.setValue(account.username)
+					.onChange(async (value) => {
+						account.username = value.trim();
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.password'))
+			.addText((text) => {
+				text.inputEl.type = 'password';
+				text
+					.setPlaceholder('••••••••')
+					.setValue(account.password)
+					.onChange(async (value) => {
+						account.password = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(container)
+			.setName(this.t('settings.caldavAuthMethod'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('basic', this.t('settings.caldavAuthBasic'))
+					.addOption('digest', this.t('settings.caldavAuthDigest'))
+					.setValue(account.authMethod)
+					.onChange(async (value) => {
+						account.authMethod = value === 'digest' ? 'digest' : 'basic';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.caldavTest'))
+			.addButton((button) =>
+				button.setButtonText(this.t('settings.caldavTest')).onClick(async () => {
+					await this.plugin.testCalDavAccount(account);
+					this.display();
+				}),
+			)
+			.addExtraButton((button) =>
 				button
 					.setIcon('trash')
 					.setTooltip(this.t('settings.removeAccount'))
@@ -345,24 +482,35 @@ export class CalendarStudioSettingTab extends PluginSettingTab {
 						this.display();
 					}),
 			);
+
+		if (account.lastError) {
+			new Setting(container).setDesc(this.t('settings.caldavError', { message: account.lastError }));
+		} else if (account.lastSyncAt) {
+			new Setting(container).setDesc(
+				this.t('settings.caldavLastSync', {
+					time: new Date(account.lastSyncAt).toLocaleString(),
+				}),
+			);
 		}
 
-		new Setting(container).addButton((button) =>
-			button
-				.setButtonText(this.t('settings.addAccount'))
-				.onClick(async () => {
-					this.plugin.settings.caldav.accounts.push({
-						id: `caldav_${Date.now()}`,
-						name: this.t('settings.accountName'),
-						url: '',
-						username: '',
-						password: '',
-						color: '#6b7fd7',
-					});
-					await this.plugin.saveSettings();
-					this.display();
-				}),
-		);
+		new Setting(container)
+			.setName(this.t('settings.caldavCalendars'))
+			.setDesc(this.t('settings.caldavCalendarsDesc'));
+
+		const calendars = account.calendars ?? [];
+		if (calendars.length === 0) {
+			new Setting(container).setDesc(this.t('settings.caldavNoCalendars'));
+		}
+		for (const calendar of calendars) {
+			new Setting(container)
+				.setName(calendar.name)
+				.addToggle((toggle) =>
+					toggle.setValue(calendar.selected).onChange(async (value) => {
+						calendar.selected = value;
+						await this.plugin.saveSettings();
+					}),
+				);
+		}
 	}
 
 	private renderFolderFilters(container: HTMLElement, scope: 'frontmatter' | 'filenames' | 'tasks'): void {

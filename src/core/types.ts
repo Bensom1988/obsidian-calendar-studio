@@ -102,6 +102,20 @@ export interface WorkflowSettings {
 export interface CalDavSettings {
 	enabled: boolean;
 	accounts: CalDavAccount[];
+	/** Minutes between automatic syncs; 0 turns the timer off. */
+	autoSyncMinutes: number;
+	/** How many months around the visible month are fetched from the server. */
+	rangeMonths: number;
+}
+
+/** A calendar collection found on a CalDAV server. */
+export interface CalDavCalendarSetting {
+	/** Collection URL; the identity of the calendar. */
+	url: string;
+	name: string;
+	color?: string;
+	/** Whether the calendar's events are shown. */
+	selected: boolean;
 }
 
 export interface CalDavAccount {
@@ -111,6 +125,14 @@ export interface CalDavAccount {
 	username: string;
 	password: string;
 	color: string;
+	/** Some servers insist on digest authentication. */
+	authMethod: 'basic' | 'digest';
+	/** Calendars discovered on the server, with the user's selection. */
+	calendars: CalDavCalendarSetting[];
+	/** When this account was synced last. */
+	lastSyncAt?: number;
+	/** Why the last sync failed, if it did. */
+	lastError?: string;
 }
 
 export type UiLanguage = 'en' | 'zh-CN';
@@ -164,6 +186,8 @@ export const DEFAULT_SETTINGS: CalendarStudioSettings = {
 	caldav: {
 		enabled: false,
 		accounts: [],
+		autoSyncMinutes: 30,
+		rangeMonths: 1,
 	},
 	workflow: {
 		useCoreDailyNotes: true,

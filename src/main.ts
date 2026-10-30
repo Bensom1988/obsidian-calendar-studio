@@ -4,6 +4,13 @@ import { CalendarState } from './core/calendarState';
 import { FrontmatterSource } from './sources/frontmatter';
 import { FilenameSource } from './sources/filename';
 import { TasksSource } from './sources/tasks';
+import { CalDavSource } from './sources/caldav';
+import {
+	CalDavService,
+	describeError,
+	type CalDavHost,
+	type CalDavSyncRange,
+} from './caldav/service';
 import { MonthView, MONTH_VIEW_TYPE } from './ui/monthView';
 import { MiniCalendarView, MINI_VIEW_TYPE } from './ui/miniCalendar';
 import { CalendarStudioSettingTab } from './settingsTab';
@@ -13,11 +20,17 @@ import { generateTasksForDay } from './workflow/taskGenerator';
 import {
 	DEFAULT_SETTINGS,
 	type CalendarStudioSettings,
+	type CalDavAccount,
+	type CalDavSettings,
 	type EventSource,
 } from './core/types';
+import { addMonths, startOfDay } from './core/dateUtils';
 
-export default class CalendarStudioPlugin extends Plugin {
+export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	settings!: CalendarStudioSettings;
+
+	/** Fetches external calendars and owns their events. */
+	caldav!: CalDavService;
 
 	/** Every known event, grouped by day. */
 	readonly index = new EventIndex();
@@ -27,8 +40,12 @@ export default class CalendarStudioPlugin extends Plugin {
 
 	private ribbonIcon: HTMLElement | null = null;
 
+	/** Handle of the automatic CalDAV sync timer. */
+	private autoSyncTimer: number | null = null;
+
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		this.caldav = new CalDavService(this);
 
 		this.registerView(MONTH_VIEW_TYPE, (leaf: WorkspaceLeaf) => new MonthView(leaf, this));
 		this.registerView(MINI_VIEW_TYPE, (leaf: WorkspaceLeaf) => new MiniCalendarView(leaf, this));
@@ -84,7 +101,16 @@ export default class CalendarStudioPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: 'sync-caldav',
+			name: translate(this.settings.language, 'command.syncCalDav'),
+			callback: () => {
+				void this.syncCalDav();
+			},
+		});
+
 		this.buildSources();
+		this.startAutoSync();
 
 		// Frontmatter changes surface through the metadata cache, file edits
 		// through the vault. Both only schedule a rebuild — the index itself
@@ -99,9 +125,19 @@ export default class CalendarStudioPlugin extends Plugin {
 		this.app.workspace.onLayoutReady(() => {
 			void this.openMiniCalendar();
 		});
+
+		// Show the last known schedule right away, then refresh it in the
+		// background — the calendar must never wait for the network.
+		if (this.settings.caldav.enabled) {
+			void this.caldav.restoreFromCache().then(() => this.syncCalDav(true));
+		}
 	}
 
 	onunload(): void {
+		if (this.autoSyncTimer !== null) {
+			window.clearInterval(this.autoSyncTimer);
+			this.autoSyncTimer = null;
+		}
 		this.index.scheduleRebuild(0);
 	}
 
@@ -134,12 +170,19 @@ export default class CalendarStudioPlugin extends Plugin {
 			DEFAULT_SETTINGS.workflow,
 			this.settings.workflow ?? {},
 		);
+
+		// Accounts written by an older version have no calendar list yet.
+		for (const account of this.settings.caldav.accounts ?? []) {
+			if (!Array.isArray(account.calendars)) account.calendars = [];
+			if (account.authMethod !== 'digest') account.authMethod = 'basic';
+		}
 	}
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 		// Recreating the sources already triggers a fresh index.
 		this.buildSources();
+		this.startAutoSync();
 		if (this.ribbonIcon) {
 			this.ribbonIcon.setAttribute(
 				'aria-label',
@@ -155,7 +198,98 @@ export default class CalendarStudioPlugin extends Plugin {
 			new FilenameSource(this.app, () => this.settings.filenames),
 			new TasksSource(this.app, () => this.settings.tasks),
 		];
+		if (this.settings.caldav.enabled) {
+			sources.push(new CalDavSource(this.caldav));
+		}
 		this.index.setSources(sources);
+	}
+
+	/** The CalDAV settings, as the sync service sees them. */
+	get caldavSettings(): CalDavSettings {
+		return this.settings.caldav;
+	}
+
+	/** The events of an external calendar changed — refresh the index. */
+	onEventsChanged(): void {
+		this.index.scheduleRebuild();
+	}
+
+	/** Title used for external events that have no summary. */
+	fallbackTitle(): string {
+		return translate(this.settings.language, 'view.untitled');
+	}
+
+	/** The window fetched from the server: the visible month and its neighbours. */
+	calDavRange(): CalDavSyncRange {
+		const months = Math.max(0, this.settings.caldav.rangeMonths);
+		const anchor = this.state.anchor;
+		return {
+			start: startOfDay(addMonths(anchor, -months)),
+			end: startOfDay(addMonths(anchor, months + 1)),
+		};
+	}
+
+	/** Refresh the external calendars. */
+	async syncCalDav(silent = false): Promise<void> {
+		const language = this.settings.language;
+		if (!this.settings.caldav.enabled) {
+			if (!silent) new Notice(translate(language, 'notice.caldavDisabled'));
+			return;
+		}
+		try {
+			const report = await this.caldav.sync(this.calDavRange());
+			const failed = report.accounts.filter((account) => account.error);
+			if (failed.length > 0) {
+				console.error('[calendar-studio] caldav sync failed:', failed);
+				if (!silent) {
+					new Notice(
+						translate(language, 'notice.caldavTestFailed', {
+							message: failed[0].error ?? '',
+						}),
+					);
+				}
+				return;
+			}
+			if (!silent) {
+				new Notice(
+					translate(language, 'notice.caldavSynced', { count: report.events }),
+				);
+			}
+		} catch (error) {
+			console.error('[calendar-studio] caldav sync failed:', error);
+			if (!silent) new Notice(translate(language, 'notice.failed'));
+		}
+	}
+
+	/** Check one account: connect to it and list its calendars. */
+	async testCalDavAccount(account: CalDavAccount): Promise<void> {
+		const language = this.settings.language;
+		try {
+			new Notice(translate(language, 'notice.caldavTesting'));
+			const calendars = await this.caldav.discoverCalendars(account);
+			account.lastError = undefined;
+			await this.saveSettings();
+			new Notice(translate(language, 'notice.caldavTestOk', { count: calendars.length }));
+		} catch (error) {
+			const message = describeError(error);
+			account.lastError = message;
+			await this.saveSettings();
+			new Notice(translate(language, 'notice.caldavTestFailed', { message }));
+		}
+	}
+
+	/** (Re)start the timer that refreshes external calendars. */
+	private startAutoSync(): void {
+		if (this.autoSyncTimer !== null) {
+			window.clearInterval(this.autoSyncTimer);
+			this.autoSyncTimer = null;
+		}
+		const minutes = this.settings.caldav.autoSyncMinutes;
+		if (!this.settings.caldav.enabled || minutes <= 0) return;
+		this.autoSyncTimer = window.setInterval(() => {
+			void this.syncCalDav(true);
+		}, minutes * 60 * 1000);
+		this.registerInterval(this.autoSyncTimer);
 	}
 
 	/** Create — or refresh — the daily note of a date. */

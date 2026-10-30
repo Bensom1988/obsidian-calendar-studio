@@ -6,6 +6,34 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-30
+
+### Added
+
+- CalDAV source: several accounts with server URL, user name, password and
+  Basic or Digest authentication. The plugin discovers the calendars of an
+  account and you tick the ones you want.
+- Recurring events are expanded into their single occurrences — weekly,
+  monthly and yearly rules — and an exception that moves one occurrence is
+  honoured.
+- An offline cache (`caldav-cache.json` in the plugin folder) keeps the last
+  known schedule, so the calendar still shows today's events when the server
+  cannot be reached.
+- The command "同步外部日历 / Sync external calendars" plus an optional timer
+  (15 minutes up to 3 hours, switchable off) refresh the external calendars.
+- Settings for the automatic sync, the sync range around the visible month and
+  the authentication method.
+
+### Changed
+
+- The plugin only fetches the visible month (plus the months you configure),
+  which keeps big accounts fast.
+
+### Fixed
+
+- A broken iCalendar document no longer breaks the whole calendar; it is
+  skipped.
+
 ## [0.2.0] - 2026-10-30
 
 ### Added

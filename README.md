@@ -42,7 +42,7 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
 |---|---|---|
 | P0 | Engine, bilingual UI, vault sources, month views | ✅ done (2026-10-30) |
 | P1 | Task source, daily-note and task creation | ✅ done (2026-10-30) |
-| P2 | CalDAV sync (tsdav) with offline cache | planned |
+| P2 | CalDAV sync (tsdav) with offline cache | ✅ done (2026-10-30) |
 | P3 | Embedded code block, ICS export | planned |
 | P4 | AI report generation | planned |
 | P5 | Polish, lunar/holiday data, tests, docs | planned |
@@ -71,6 +71,33 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
   daily note or in a note you choose.
 - Templates for both, with a date format you pick (`YYYY-MM-DD`,
   `YYYY年MM月DD日`, …).
+
+**P2 as shipped**
+
+- CalDAV accounts in the settings: server URL, user name, password, Basic or
+  Digest authentication. The plugin discovers the calendars of an account and
+  you tick the ones you want.
+- Recurring events are expanded — weekly, monthly and yearly rules, with
+  exceptions that move a single occurrence.
+- The visible month (plus the months you configure) is fetched, so the
+  calendar stays fast on big accounts.
+- An offline cache keeps the last known schedule in the vault's plugin folder:
+  the calendar still shows today's meetings when the server cannot be reached.
+- One command (**Sync external calendars**) and an optional timer refresh the
+  schedule; a failing account never hides the events of the other ones.
+
+### CalDAV setup
+
+1. Open *Settings → Calendar Studio → External calendars* and switch the
+   source on.
+2. Press **Add account** and fill in the server URL, user name and password.
+   The server URL may be the root of the service
+   (`https://p216-caldav.icloud.com.cn/`) or the account URL your provider
+   shows you — the plugin performs the CalDAV service discovery itself.
+   Apple, for instance, needs an *app-specific password*.
+3. Press **Test connection**. The calendars of the account show up; tick the
+   ones you want.
+4. Press **Sync now** (or wait for the automatic sync).
 
 ### Install
 
@@ -127,8 +154,7 @@ or an AI endpoint yourself.
 
 MIT — see [LICENSE](LICENSE).
 
-Third-party: `lunar-javascript` (MIT), `tsdav` (MIT), `rrule` (BSD-3-Clause),
-`ical.js` (MPL-2.0).
+Third-party: `lunar-javascript` (MIT), `tsdav` (MIT), `ical.js` (MPL-2.0).
 
 ---
 
@@ -156,7 +182,7 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 |---|---|---|
 | P0 | 引擎、双语界面、库内数据源、月历视图 | ✅ 已完成（2026-10-30） |
 | P1 | 任务源、日记与任务生成 | ✅ 已完成（2026-10-30） |
-| P2 | CalDAV 同步与离线缓存 | 计划中 |
+| P2 | CalDAV 同步与离线缓存 | ✅ 已完成（2026-10-30） |
 | P3 | 可嵌入代码块、ICS 导出 | 计划中 |
 | P4 | AI 报告生成 | 计划中 |
 | P5 | 打磨、农历节假日数据、测试、文档 | 计划中 |
@@ -170,6 +196,26 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 - 同一次点击还能把当天日程变成 Markdown 任务，可以写进当天日记，也可以
   写到你指定的文件。
 - 日记与任务都支持模板，日期格式随你选（`YYYY-MM-DD`、`YYYY年MM月DD日` 等）。
+
+**P2 已交付**
+
+- 设置里可以添加多个 CalDAV 账号：服务器地址、用户名、密码，Basic 或 Digest 认证。
+  插件会自动列出账号下的日历，勾选你要的那几个。
+- 循环日程会展开成一次次的具体安排——每周、每月、每年的规则都支持，
+  单次改期（例外）也会被正确处理。
+- 只抓取当前显示的月份（外加你配置的月份数），账号再大也不卡。
+- 离线缓存把上次同步到的日程留在插件目录里：服务器连不上时，日历照样
+  显示今天的安排。
+- 一个「同步外部日历」命令 + 可选的定时刷新；某个账号出错不会影响其他账号。
+
+**CalDAV 配置**
+
+1. 打开 *设置 → 日历工作台 → 外部日历*，把这一项打开。
+2. 点「添加账号」，填服务器地址、用户名、密码。地址可以填服务根地址
+   （如 `https://p216-caldav.icloud.com.cn/`），也可以填服务商给你的账号地址，
+   插件会自己做服务发现。Apple 需要在账户里生成**专用密码**。
+3. 点「测试连接」，账号下的日历会列出来，勾选需要的。
+4. 点「立即同步」，或者等自动同步。
 
 ### 安装
 
@@ -216,5 +262,4 @@ npm run deploy  # 部署到 $VAULT_PATH/.obsidian/plugins/calendar-studio
 
 MIT — 见 [LICENSE](LICENSE)。
 
-第三方依赖：`lunar-javascript`（MIT）、`tsdav`（MIT）、`rrule`（BSD-3-Clause）、
-`ical.js`（MPL-2.0）。
+第三方依赖：`lunar-javascript`（MIT）、`tsdav`（MIT）、`ical.js`（MPL-2.0）。
