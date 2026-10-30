@@ -85,6 +85,10 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
   the calendar still shows today's meetings when the server cannot be reached.
 - One command (**Sync external calendars**) and an optional timer refresh the
   schedule; a failing account never hides the events of the other ones.
+- The passwords are kept in Obsidian's secret storage, so they never end up in
+  the vault — handy when the vault is synced through iCloud or Dropbox.
+- **Import from Full Calendar Remastered**: the accounts of that plugin —
+  passwords included — move over in one click.
 
 ### CalDAV setup
 
@@ -93,11 +97,16 @@ plugin surfaces them all. Calendar Studio does, in one clean grid, and then
 2. Press **Add account** and fill in the server URL, user name and password.
    The server URL may be the root of the service
    (`https://p216-caldav.icloud.com.cn/`) or the account URL your provider
-   shows you — the plugin performs the CalDAV service discovery itself.
+   shows you — the plugin looks for the calendars of the account by itself.
    Apple, for instance, needs an *app-specific password*.
 3. Press **Test connection**. The calendars of the account show up; tick the
-   ones you want.
+   ones you want. The plugin reads and writes the collections you ticked
+   directly, so a server that does not answer the usual discovery still
+   works.
 4. Press **Sync now** (or wait for the automatic sync).
+
+Coming from Full Calendar Remastered? Press **Import from Full Calendar
+Remastered** instead — the accounts move over with their passwords.
 
 ### Install
 
@@ -207,6 +216,9 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
 - 离线缓存把上次同步到的日程留在插件目录里：服务器连不上时，日历照样
   显示今天的安排。
 - 一个「同步外部日历」命令 + 可选的定时刷新；某个账号出错不会影响其他账号。
+- 密码存在 Obsidian 的安全存储里，不会写进库文件——库用 iCloud 或 Dropbox 同步时，
+  密码不会跟着明文到处跑。
+- 「从 Full Calendar Remastered 导入」：那个插件里的账号（含密码）一键接过来。
 
 **CalDAV 配置**
 
@@ -216,6 +228,9 @@ frontmatter 字段、任务行、文件名——再通过 CalDAV 合并你的真
    插件会自己做服务发现。Apple 需要在账户里生成**专用密码**。
 3. 点「测试连接」，账号下的日历会列出来，勾选需要的。
 4. 点「立即同步」，或者等自动同步。
+
+从 Full Calendar Remastered 过来的话，直接点「从 Full Calendar Remastered 导入」，
+账号连密码一起接过来。
 
 ### 安装
 

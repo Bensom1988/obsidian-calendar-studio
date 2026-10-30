@@ -23,6 +23,11 @@ All notable changes to this project are documented here. The format follows
   (15 minutes up to 3 hours, switchable off) refresh the external calendars.
 - Settings for the automatic sync, the sync range around the visible month and
   the authentication method.
+- The passwords of the accounts live in Obsidian's secret storage, so they
+  never enter the vault — a vault that is synced through iCloud or Dropbox no
+  longer carries them around in plain text.
+- "Import from Full Calendar Remastered" takes over the accounts of that
+  plugin, including the passwords it keeps in the secret storage.
 
 ### Changed
 
@@ -31,8 +36,22 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The CalDAV requests go through Obsidian's own request function now. The
+  browser inside Obsidian refused the requests of a CalDAV server with
+  "Failed to fetch", because such a server does not answer with the headers
+  a browser asks for.
+- The plugin reads and writes the calendar collections directly instead of
+  first asking the server where they live. That discovery step is not
+  implemented the same way by every server — DingTalk, for example, does not
+  answer it — and the collections of an account are known anyway.
+- Importing the accounts of "Full Calendar Remastered" twice does not create
+  the accounts twice.
 - A broken iCalendar document no longer breaks the whole calendar; it is
   skipped.
+- Writing the settings no longer empties the settings file when two writes
+  happen at the same time.
+- Two settings writes at the same time no longer truncate each other: the
+  writes are queued, so the settings file cannot end up empty.
 
 ## [0.2.0] - 2026-10-30
 

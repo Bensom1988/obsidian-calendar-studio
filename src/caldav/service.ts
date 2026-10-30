@@ -45,6 +45,8 @@ export interface CalDavHost {
 	onEventsChanged(): void;
 	/** Localised fallback title for events without a summary. */
 	fallbackTitle(): string;
+	/** The password of an account, taken from the secure credential store. */
+	resolvePassword(account: CalDavAccount): Promise<string>;
 }
 
 export class CalDavService {
@@ -102,11 +104,10 @@ export class CalDavService {
 		for (const account of accounts) {
 			if (!account.url) continue;
 			try {
-				const client = this.createClient(account);
-				const calendars = await client.listCalendars();
-				this.mergeCalendars(account, calendars);
-
-				const selected = account.calendars.filter((calendar) => calendar.selected);
+				const client = await this.clientFor(account);
+				// The collections the user picked are the ones that are
+				// read — no discovery is needed for a sync.
+				const selected = (account.calendars ?? []).filter((calendar) => calendar.selected);
 				let count = 0;
 				for (const calendar of selected) {
 					const documents = await client.fetchEvents(calendar.url, range);
@@ -160,10 +161,16 @@ export class CalDavService {
 	 * it. Throws when the server cannot be reached.
 	 */
 	async discoverCalendars(account: CalDavAccount): Promise<CalDavCalendarInfo[]> {
-		const client = this.createClient(account);
+		const client = await this.clientFor(account);
 		const calendars = await client.listCalendars();
 		this.mergeCalendars(account, calendars);
 		return calendars;
+	}
+
+	/** A client for an account, with its password resolved. */
+	private async clientFor(account: CalDavAccount): Promise<CalDavClientLike> {
+		const password = await this.host.resolvePassword(account);
+		return this.createClient({ ...account, password });
 	}
 
 	/**

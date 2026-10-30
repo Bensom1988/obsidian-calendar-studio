@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import type CalendarStudioPlugin from './main';
 import { translate } from './i18n';
 import type { CalDavAccount, PropertyKind, PropertyRule } from './core/types';
@@ -359,7 +359,11 @@ export class CalendarStudioSettingTab extends PluginSettingTab {
 
 		new Setting(container)
 			.setName(this.t('settings.accounts'))
-			.setDesc(this.t('settings.caldavPasswordWarning'))
+			.setDesc(
+				this.plugin.credentials.secure
+					? this.t('settings.caldavPasswordStored')
+					: this.t('settings.caldavPasswordPlain'),
+			)
 			.addButton((button) =>
 				button
 					.setButtonText(this.t('settings.caldavSyncNow'))
@@ -368,6 +372,27 @@ export class CalendarStudioSettingTab extends PluginSettingTab {
 						await this.plugin.syncCalDav();
 						this.display();
 					}),
+			);
+
+		new Setting(container)
+			.setName(this.t('settings.caldavImport'))
+			.setDesc(this.t('settings.caldavImportDesc'))
+			.addButton((button) =>
+				button.setButtonText(this.t('settings.caldavImport')).onClick(async () => {
+					const summary = await this.plugin.importFullCalendarAccounts();
+					const total = summary.imported + summary.updated;
+					if (total === 0) {
+						new Notice(this.t('notice.caldavImportNone'));
+					} else {
+						new Notice(
+							this.t('notice.caldavImportOk', {
+								count: total,
+								passwords: summary.passwords,
+							}),
+						);
+					}
+					this.display();
+				}),
 			);
 
 		for (const account of caldav.accounts) {
@@ -439,15 +464,22 @@ export class CalendarStudioSettingTab extends PluginSettingTab {
 
 		new Setting(container)
 			.setName(this.t('settings.password'))
+			.setDesc(this.t('settings.caldavPasswordStored'))
 			.addText((text) => {
 				text.inputEl.type = 'password';
+				let pending = account.password;
 				text
 					.setPlaceholder('••••••••')
 					.setValue(account.password)
-					.onChange(async (value) => {
-						account.password = value;
-						await this.plugin.saveSettings();
+					.onChange((value) => {
+						pending = value;
 					});
+				// The password is written when the field is left, not on every
+				// keystroke — the credential store is not a text field.
+				text.inputEl.addEventListener('blur', () => {
+					if (pending === account.password) return;
+					void this.plugin.setCalDavPassword(account, pending);
+				});
 			});
 
 		new Setting(container)

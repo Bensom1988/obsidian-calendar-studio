@@ -1,3 +1,4 @@
+import { parentCandidates } from '../src/caldav/client';
 import { describe, expect, it } from 'vitest';
 import type { App } from 'obsidian';
 import { parseIcs } from '../src/caldav/ics';
@@ -225,6 +226,9 @@ function fakeHost(app: App, settings: CalDavSettings): CalDavHost & { changed: n
 		fallbackTitle() {
 			return '无标题';
 		},
+		async resolvePassword(account: CalDavAccount) {
+			return account.password;
+		},
 	};
 	return host as unknown as CalDavHost & { changed: number };
 }
@@ -248,7 +252,14 @@ describe('CalDavService', () => {
 		const app = fakeApp();
 		const settings: CalDavSettings = {
 			enabled: true,
-			accounts: [account()],
+			accounts: [
+				account({
+					calendars: [
+						{ url: 'https://example.com/dav/cal/', name: '会议', color: '#112233', selected: true },
+						{ url: 'https://example.com/dav/private/', name: '私人', selected: true },
+					],
+				}),
+			],
 			autoSyncMinutes: 0,
 			rangeMonths: 0,
 		};
@@ -284,8 +295,11 @@ END:VEVENT`),
 		expect(report.accounts[0].error).toBeUndefined();
 		expect(service.getEvents()[0].title).toBe('站会');
 		expect(service.getEvents()[0].calendar).toBe('会议');
-		// Nothing was chosen before, so every calendar starts out ticked.
-		expect(settings.accounts[0].calendars.map((c) => c.selected)).toEqual([true, true]);
+		// The calendars of the account are the ones that are read.
+		expect(settings.accounts[0].calendars.map((c) => c.url)).toEqual([
+			'https://example.com/dav/cal/',
+			'https://example.com/dav/private/',
+		]);
 		expect(host.changed).toBeGreaterThan(0);
 	});
 
@@ -315,7 +329,7 @@ END:VEVENT`),
 		};
 
 		const service = new CalDavService(host, () => client);
-		await service.sync({ start: new Date(2026, 9, 1), end: new Date(2026, 9, 31) });
+		await service.discoverCalendars(settings.accounts[0]);
 
 		const calendars = settings.accounts[0].calendars;
 		expect(calendars.find((c) => c.url.endsWith('/cal/'))?.selected).toBe(false);
@@ -326,16 +340,30 @@ END:VEVENT`),
 		const app = fakeApp();
 		const settings: CalDavSettings = {
 			enabled: true,
-			accounts: [account({ id: 'bad' }), account({ id: 'good' })],
+			accounts: [
+				account({
+					id: 'bad',
+					calendars: [{ url: 'https://example.com/dav/cal/', name: '会议', selected: true }],
+				}),
+				account({
+					id: 'good',
+					calendars: [{ url: 'https://example.com/dav/cal/', name: '会议', selected: true }],
+				}),
+			],
 			autoSyncMinutes: 0,
 			rangeMonths: 0,
 		};
 		const host = fakeHost(app, settings);
+		let failing = true;
 		const client: CalDavClientLike = {
 			async listCalendars() {
 				throw new Error('401 Unauthorized');
 			},
 			async fetchEvents() {
+				if (failing) {
+					failing = false;
+					throw new Error('401 Unauthorized');
+				}
 				return [];
 			},
 		};
@@ -347,7 +375,9 @@ END:VEVENT`),
 		});
 
 		expect(report.accounts).toHaveLength(2);
-		expect(report.accounts.every((entry) => entry.error)).toBe(true);
+		// One failing account does not stop the other one.
+		expect(report.accounts[0].error).toContain('401');
+		expect(report.accounts[1].error).toBeUndefined();
 		expect(settings.accounts[0].lastError).toContain('401');
 	});
 
@@ -355,7 +385,11 @@ END:VEVENT`),
 		const app = fakeApp();
 		const settings: CalDavSettings = {
 			enabled: true,
-			accounts: [account()],
+			accounts: [
+				account({
+					calendars: [{ url: 'https://example.com/dav/cal/', name: '会议', selected: true }],
+				}),
+			],
 			autoSyncMinutes: 0,
 			rangeMonths: 0,
 		};
@@ -386,5 +420,50 @@ END:VEVENT`),
 		expect(count).toBe(1);
 		expect(restored.getEvents()[0].title).toBe('站会');
 		expect(restored.getEvents()[0].start).toBeInstanceOf(Date);
+	});
+});
+
+describe('parentCandidates', () => {
+	it('derives the DAV root from the calendar addresses', () => {
+		const roots = parentCandidates({
+			id: 'a',
+			name: '钉钉',
+			url: 'https://calendar.dingtalk.com/',
+			username: 'u',
+			password: '',
+			color: '#fff',
+			authMethod: 'basic',
+			calendars: [
+				{
+					url: 'https://calendar.dingtalk.com/dav/u_rmqleiut/primary/',
+					name: '我的日历',
+					selected: true,
+				},
+			],
+		});
+		expect(roots[0]).toBe('https://calendar.dingtalk.com/dav/u_rmqleiut/');
+		expect(roots).toContain('https://calendar.dingtalk.com/dav/');
+		expect(roots[roots.length - 1]).toBe('https://calendar.dingtalk.com/');
+	});
+
+	it('keeps a root that was found before at the front', () => {
+		const roots = parentCandidates({
+			id: 'b',
+			name: 'iCloud',
+			url: 'https://p216-caldav.icloud.com.cn/',
+			username: 'u',
+			password: '',
+			color: '#fff',
+			authMethod: 'basic',
+			rootUrl: 'https://p216-caldav.icloud.com.cn/16535323514/',
+			calendars: [
+				{
+					url: 'https://p216-caldav.icloud.com.cn/16535323514/calendars/ABC/',
+					name: '日历',
+					selected: true,
+				},
+			],
+		});
+		expect(roots[0]).toBe('https://p216-caldav.icloud.com.cn/16535323514/calendars/');
 	});
 });

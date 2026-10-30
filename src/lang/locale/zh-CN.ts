@@ -38,6 +38,8 @@ export default {
 	'notice.caldavTesting': '正在测试连接……',
 	'notice.caldavTestOk': '找到 {{count}} 个日历',
 	'notice.caldavTestFailed': '连不上服务器：{{message}}',
+	'notice.caldavImportOk': '已导入 {{count}} 个账号（其中 {{passwords}} 个带密码）',
+	'notice.caldavImportNone': '没有找到 Full Calendar Remastered 的账号。',
 
 	'source.frontmatter': '笔记属性',
 	'source.filenames': '文件名',
@@ -120,6 +122,10 @@ export default {
 	'settings.caldavNeverSynced': '还没同步过',
 	'settings.caldavError': '出错：{{message}}',
 	'settings.caldavPasswordWarning': '密码保存在本库的插件设置文件里，请不要把它提交到仓库。',
+	'settings.caldavPasswordStored': '保存在 Obsidian 的安全存储里，密码不会写进库文件。',
+	'settings.caldavPasswordPlain': '当前 Obsidian 版本不支持安全存储，密码会留在设置文件里。',
+	'settings.caldavImport': '从 Full Calendar Remastered 导入',
+	'settings.caldavImportDesc': '接手 Full Calendar Remastered 的账号，连它存在安全存储里的密码一起带过来。',
 
 	'settings.workflow': '日记与任务',
 	'settings.workflowDesc': '日历上的一天，如何变成一篇笔记或一组任务。',

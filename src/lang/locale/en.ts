@@ -38,6 +38,8 @@ export default {
 	'notice.caldavTesting': 'Testing the connection…',
 	'notice.caldavTestOk': 'Found {{count}} calendars',
 	'notice.caldavTestFailed': 'Could not reach the server: {{message}}',
+	'notice.caldavImportOk': 'Imported {{count}} accounts ({{passwords}} with a password)',
+	'notice.caldavImportNone': 'No Full Calendar Remastered accounts were found.',
 
 	'source.frontmatter': 'Note properties',
 	'source.filenames': 'File names',
@@ -130,6 +132,13 @@ export default {
 	'settings.caldavError': 'Error: {{message}}',
 	'settings.caldavPasswordWarning':
 		'The password is stored in this vault’s plugin settings file. Do not commit it.',
+	'settings.caldavPasswordStored':
+		'Stored in Obsidian’s secret storage — the password never enters the vault.',
+	'settings.caldavPasswordPlain':
+		'This Obsidian version cannot keep secrets, so the password stays in the settings file.',
+	'settings.caldavImport': 'Import from Full Calendar Remastered',
+	'settings.caldavImportDesc':
+		'Take over the accounts of Full Calendar Remastered — including the passwords it keeps in Obsidian’s secret storage.',
 
 	'settings.workflow': 'Daily notes and tasks',
 	'settings.workflowDesc':

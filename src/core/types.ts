@@ -116,6 +116,8 @@ export interface CalDavCalendarSetting {
 	color?: string;
 	/** Whether the calendar's events are shown. */
 	selected: boolean;
+	/** The server marked the collection read-only. */
+	readOnly?: boolean;
 }
 
 export interface CalDavAccount {
@@ -123,6 +125,12 @@ export interface CalDavAccount {
 	name: string;
 	url: string;
 	username: string;
+	/** DAV root of the server, for example `…/dav/`. Empty: it is searched. */
+	rootUrl?: string;
+	/** Principal of the user — remembered after a successful sync. */
+	principalUrl?: string;
+	/** Home set that holds the calendars — remembered after a sync. */
+	homeUrl?: string;
 	password: string;
 	color: string;
 	/** Some servers insist on digest authentication. */

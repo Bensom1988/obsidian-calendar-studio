@@ -11,6 +11,24 @@ import {
 	type CalDavHost,
 	type CalDavSyncRange,
 } from './caldav/service';
+import { CredentialStore } from './caldav/credentials';
+import { createObsidianFetch } from './caldav/http';
+import { createCalDavClient } from './caldav/client';
+import {
+	FULL_CALENDAR_PLUGIN_ID,
+	groupFullCalendarSources,
+	type FullCalendarSource,
+} from './caldav/importFullCalendar';
+
+/** What an import from the other plugin changed. */
+export interface ImportSummary {
+	/** Accounts that were added. */
+	imported: number;
+	/** Accounts that were already there and got refreshed. */
+	updated: number;
+	/** Accounts whose password was found in the secret storage. */
+	passwords: number;
+}
 import { MonthView, MONTH_VIEW_TYPE } from './ui/monthView';
 import { MiniCalendarView, MINI_VIEW_TYPE } from './ui/miniCalendar';
 import { CalendarStudioSettingTab } from './settingsTab';
@@ -32,6 +50,9 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	/** Fetches external calendars and owns their events. */
 	caldav!: CalDavService;
 
+	/** Keeps the CalDAV passwords out of the vault. */
+	readonly credentials = new CredentialStore(this.app);
+
 	/** Every known event, grouped by day. */
 	readonly index = new EventIndex();
 
@@ -43,9 +64,22 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 	/** Handle of the automatic CalDAV sync timer. */
 	private autoSyncTimer: number | null = null;
 
+	/**
+	 * Queue of the settings writes.
+	 *
+	 * Two overlapping `saveData` calls truncate each other's file, which
+	 * leaves an empty `data.json` behind. Every write therefore waits for
+	 * the previous one.
+	 */
+	private saveQueue: Promise<void> = Promise.resolve();
+
 	async onload(): Promise<void> {
 		await this.loadSettings();
-		this.caldav = new CalDavService(this);
+		// The CalDAV client talks to the server through Obsidian's own
+		// request function — the browser one is stopped by CORS.
+		this.caldav = new CalDavService(this, (account) =>
+			createCalDavClient(account, createObsidianFetch()),
+		);
 
 		this.registerView(MONTH_VIEW_TYPE, (leaf: WorkspaceLeaf) => new MonthView(leaf, this));
 		this.registerView(MINI_VIEW_TYPE, (leaf: WorkspaceLeaf) => new MiniCalendarView(leaf, this));
@@ -175,11 +209,20 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 		for (const account of this.settings.caldav.accounts ?? []) {
 			if (!Array.isArray(account.calendars)) account.calendars = [];
 			if (account.authMethod !== 'digest') account.authMethod = 'basic';
+			// A password from an older version still sits in the settings
+			// file; move it into the credential store.
+			if (account.password && this.credentials.secure) {
+				this.credentials.set(account.id, account.password);
+				account.password = '';
+			}
 		}
 	}
 
 	async saveSettings(): Promise<void> {
-		await this.saveData(this.settings);
+		this.saveQueue = this.saveQueue.then(async () => {
+			await this.saveData(this.settings);
+		});
+		await this.saveQueue;
 		// Recreating the sources already triggers a fresh index.
 		this.buildSources();
 		this.startAutoSync();
@@ -259,6 +302,83 @@ export default class CalendarStudioPlugin extends Plugin implements CalDavHost {
 			console.error('[calendar-studio] caldav sync failed:', error);
 			if (!silent) new Notice(translate(language, 'notice.failed'));
 		}
+	}
+
+	/** The password of an account: the secure store first, the settings file second. */
+	async resolvePassword(account: CalDavAccount): Promise<string> {
+		return this.credentials.get(account.id) ?? account.password ?? '';
+	}
+
+	/** Store the password of an account — securely when the vault allows it. */
+	async setCalDavPassword(account: CalDavAccount, password: string): Promise<void> {
+		const stored = this.credentials.set(account.id, password);
+		if (stored) {
+			// The password lives in the credential store now; the settings file
+			// must not keep a copy of it.
+			account.password = '';
+		} else {
+			account.password = password;
+		}
+		await this.saveSettings();
+	}
+
+	/**
+	 * Import the accounts of Full Calendar Remastered.
+	 *
+	 * The other plugin keeps its passwords in Obsidian's secret storage, so
+	 * the import reads them from there as well — the user does not have to
+	 * type them again.
+	 */
+	async importFullCalendarAccounts(): Promise<ImportSummary> {
+		const path = `${this.app.vault.configDir}/plugins/${FULL_CALENDAR_PLUGIN_ID}/data.json`;
+		let sources: FullCalendarSource[] = [];
+		try {
+			const raw = await this.app.vault.adapter.read(path);
+			const parsed = JSON.parse(raw) as { calendarSources?: FullCalendarSource[] };
+			sources = parsed.calendarSources ?? [];
+		} catch {
+			return { imported: 0, updated: 0, passwords: 0 };
+		}
+
+		const groups = groupFullCalendarSources(sources);
+		const summary: ImportSummary = { imported: 0, updated: 0, passwords: 0 };
+		for (const group of groups) {
+			// An account that is already there is updated instead of copied,
+			// so importing twice does not create a second copy.
+			const existing = this.settings.caldav.accounts.find(
+				(account) => account.url === group.url && account.username === group.username,
+			);
+			const account: CalDavAccount = existing ?? {
+				id: `caldav-${Date.now()}-${summary.imported}`,
+				name: group.name,
+				url: group.url,
+				username: group.username,
+				password: '',
+				color: group.color,
+				authMethod: 'basic',
+				calendars: [],
+			};
+			account.name = group.name;
+			account.calendars = group.calendars;
+
+			for (const secretId of group.secretIds) {
+				const secret = this.app.secretStorage?.getSecret(secretId);
+				if (secret) {
+					this.credentials.set(account.id, secret);
+					summary.passwords += 1;
+					break;
+				}
+			}
+
+			if (existing) {
+				summary.updated += 1;
+			} else {
+				this.settings.caldav.accounts.push(account);
+				summary.imported += 1;
+			}
+		}
+		await this.saveSettings();
+		return summary;
 	}
 
 	/** Check one account: connect to it and list its calendars. */
